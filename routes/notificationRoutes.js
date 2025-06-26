@@ -4,6 +4,7 @@ const notificationController = require('../controllers/notificationController');
 const auth = require('../middleware/authMiddleware');
 
 router.get('/', auth, notificationController.getNotifications);
+router.post('/send', auth, notificationController.sendNotification);
 router.put('/:id/read', auth, notificationController.markAsRead);
 router.delete('/:id', auth, notificationController.deleteNotification);
 

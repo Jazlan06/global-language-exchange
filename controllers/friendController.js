@@ -1,5 +1,6 @@
 const FriendRequest = require('../models/FriendRequest');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
 
 exports.sendRequest = async (req, res) => {
     const senderId = req.user.id;
@@ -26,6 +27,14 @@ exports.sendRequest = async (req, res) => {
         });
 
         await newRequest.save();
+        // Create a notification for the receiver
+        await Notification.create({
+            type: 'friend_request',
+            sender: senderId,
+            receiver: receiverId,
+            text: `${req.user.name} has sent you a friend request.`
+        });
+
         res.status(201).json({ message: 'Friend request sent successfully.' });
     } catch (error) {
         console.error('❌ Error in sendRequest:', error);
@@ -48,6 +57,13 @@ exports.acceptRequest = async (req, res) => {
             return res.status(404).json({ message: 'Friend request not found or already accepted.' });
         }
 
+        await Notification.create({
+            type : 'request_accepted',
+            sender: receiverId,
+            receiver: senderId,
+            text: `${req.user.name} has accepted your friend request.`
+        });
+
         res.json({ message: 'Friend request accepted successfully.' });
     }
     catch (error) {
@@ -59,7 +75,7 @@ exports.acceptRequest = async (req, res) => {
 exports.rejectRequest = async (req, res) => {
     const receiverId = req.user.id;
     const { senderId } = req.body;
-    try{
+    try {
         const request = await FriendRequest.findOneAndUpdate(
             { sender: senderId, receiver: receiverId, status: 'pending' },
             { status: 'rejected' },
@@ -70,7 +86,7 @@ exports.rejectRequest = async (req, res) => {
         }
         res.json({ message: 'Friend request rejected successfully.', request });
     }
-    catch(error){
+    catch (error) {
         console.error('❌ Error in rejectRequest:', error);
         res.status(500).json({ message: 'Server error' });
     }
@@ -91,6 +107,6 @@ exports.getPendingRequests = async (req, res) => {
     } catch (error) {
         console.error('❌ Error in getPendingRequests:', error);
         res.status(500).json({ message: 'Server error' });
-        
+
     }
 }

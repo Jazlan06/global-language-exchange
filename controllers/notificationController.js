@@ -1,5 +1,23 @@
 const Notification = require('../models/Notification');
 
+exports.sendNotification = async (req, res) => {
+  const { receiverId, type, message } = req.body;
+
+  try {
+    const notification = await Notification.create({
+      sender: req.user.id,
+      receiver: receiverId,
+      type,
+      text: message
+    });
+
+    res.status(201).json(notification);
+  } catch (err) {
+    console.error('❌ Error in sendNotification:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 exports.getNotifications = async (req, res) => {
     try {
        const notifications = await Notification.find({receiver: req.user.id})
