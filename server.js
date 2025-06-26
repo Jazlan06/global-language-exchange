@@ -16,6 +16,8 @@ const matchMakingRoutes = require('./routes/matchMakingRoutes');
 app.use('/api/matchmaking', matchMakingRoutes);
 const chatRoutes = require('./routes/chatRoutes');
 app.use('/api/chats', chatRoutes);
+const friendRoutes = require('./routes/friendRoutes');
+app.use('/api/friends', friendRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
