@@ -10,6 +10,10 @@ router.put('/me', auth, (req, res, next) => {
     console.log('🧾 Update user profile request body:', req.body);
     next();
 }, userController.updateProfile);
+router.get('/all', auth, async (req, res) => {
+  const users = await User.find({}, '_id name email');
+  res.json(users);
+});
 
 
 module.exports = router;
