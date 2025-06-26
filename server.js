@@ -18,6 +18,8 @@ const chatRoutes = require('./routes/chatRoutes');
 app.use('/api/chats', chatRoutes);
 const friendRoutes = require('./routes/friendRoutes');
 app.use('/api/friends', friendRoutes);
+const notificationRoutes = require('./routes/notificationRoutes');
+app.use('/api/notifications', notificationRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
