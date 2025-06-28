@@ -14,6 +14,9 @@ router.get('/all', auth, async (req, res) => {
   const users = await User.find({}, '_id name email');
   res.json(users);
 });
+router.get('/friends/online', auth, userController.getOnlineFriends);
+router.get('/online', auth, userController.getAllOnlineUsers);
+
 
 
 module.exports = router;

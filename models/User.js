@@ -23,6 +23,15 @@ const userSchema = new mongoose.Schema({
     xp: { type: Number, default: 0 },
     streak: { type: Number, default: 0 },
     lastActiveDate: { type: Date },
+    isOnline: {
+        type: Boolean,
+        default: false
+    },
+    socketId: {
+        type: String,
+        default: ''
+    }
+
 
 });
 

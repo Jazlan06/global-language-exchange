@@ -16,7 +16,6 @@ exports.updateXP = async (req, res) => {
     let userXP = await XP.findOne({ user: userId });
 
     if (!userXP) {
-      // Create new XP record for user
       userXP = new XP({
         user: userId,
         xp: xpToAdd,
@@ -27,15 +26,13 @@ exports.updateXP = async (req, res) => {
       const lastActive = userXP.lastActiveDate ? new Date(userXP.lastActiveDate) : null;
 
       if (lastActive && lastActive.toDateString() === today.toDateString()) {
-        // Same day, just add XP
+     
         userXP.xp += xpToAdd;
       } else if (isNextDay(lastActive, today)) {
-        // Next day, increment streak and add XP
         userXP.streak += 1;
         userXP.xp += xpToAdd;
         userXP.lastActiveDate = today;
       } else {
-        // More than one day gap, reset streak and add XP
         userXP.streak = 1;
         userXP.xp += xpToAdd;
         userXP.lastActiveDate = today;

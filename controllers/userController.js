@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const FriendRequest = require('../models/FriendRequest');
 
 exports.getProfile = async (req, res) => {
     try {
@@ -42,6 +43,44 @@ exports.updateProfile = async (req, res) => {
         res.json(user);
     } catch (err) {
         console.error('❌ Error in updateProfile:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+}
+
+exports.getOnlineFriends = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const sent = await FriendRequest.find({ sender: userId, status: 'accepted' });
+    const received = await FriendRequest.find({ receiver: userId, status: 'accepted' });
+
+    const friendIds = [
+      ...sent.map(r => r.receiver.toString()),
+      ...received.map(r => r.sender.toString())
+    ];
+
+    const onlineFriends = await User.find({
+      _id: { $in: friendIds },
+      isOnline: true
+    }, '_id name email isOnline');
+
+    res.json({ onlineFriends });
+  } catch (error) {
+    console.error('❌ Error fetching online friends:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+
+exports.getAllOnlineUsers = async (req, res) => {
+    try {
+        const users = await User.find({ isOnline: true }, 'name email');
+        if (users.length === 0) {
+            return res.status(404).json({ message: 'No online users found' });
+        }
+        res.json({ onlineUsers: users });
+    } catch (error) {
+        console.error('❌ Error in getAllOnlineUsers:', error);
         res.status(500).json({ message: 'Server error' });
     }
 }
