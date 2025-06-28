@@ -2,12 +2,22 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
+const http = require('http');
+const socketManager = require('./sockets/socketManager');
 const app = express();
+const server = http.createServer(app);
+const io = require('socket.io')(server, {
+    cors:{
+        origin: '*',
+        methods: ['GET', 'POST'],
+    }
+});
 
 connectDB();
 
 app.use(cors());
 app.use(express.json());
+
 const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
 const userRoutes = require('./routes/userRoutes');
@@ -20,6 +30,10 @@ const friendRoutes = require('./routes/friendRoutes');
 app.use('/api/friends', friendRoutes);
 const notificationRoutes = require('./routes/notificationRoutes');
 app.use('/api/notifications', notificationRoutes);
+const callRoutes = require('./routes/callRoutes');
+app.use('/api/calls', callRoutes);
+
+socketManager(io);
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
