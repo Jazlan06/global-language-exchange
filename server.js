@@ -32,6 +32,8 @@ const notificationRoutes = require('./routes/notificationRoutes');
 app.use('/api/notifications', notificationRoutes);
 const callRoutes = require('./routes/callRoutes');
 app.use('/api/calls', callRoutes);
+const promptRoutes = require('./routes/promptRoutes');
+app.use('/api/prompts', promptRoutes);
 
 socketManager(io);
 
