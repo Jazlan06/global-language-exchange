@@ -12,6 +12,7 @@ const io = require('socket.io')(server, {
         methods: ['GET', 'POST'],
     }
 });
+const cleanupOnlineUsers = require('./utils/cleanupOnlineUsers');   
 
 connectDB();
 
@@ -38,6 +39,10 @@ const xpRoutes = require('./routes/xpRoutes');
 app.use('/api/xp', xpRoutes);
 
 socketManager(io);
+
+setInterval(() => {
+    cleanupOnlineUsers(io, require('./sockets/socketManager').onlineUsers);
+}, 5 * 60 * 1000);
 
 app.use((err, req, res, next) => {
   console.error(err.stack);

@@ -1,14 +1,34 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Chat = require('../models/Chat');
+const FriendRequest = require('../models/FriendRequest');
 
 const onlineUsers = new Map(); // Map to store online users
 
+const notifyFriendsStatus = async (userId, status, io) => {
+    const sent = await FriendRequest.find({ sender: userId, status: 'accepted' });
+    const received = await FriendRequest.find({ receiver: userId, status: 'accepted' });
+
+    const friendIds = [
+        ...sent.map(r => r.receiver.toString()),
+        ...received.map(r => r.sender.toString())
+    ];
+
+    friendIds.forEach(friendId => {
+        const friendSocketId = onlineUsers.get(friendId);
+        if (friendSocketId) {
+            io.to(friendSocketId).emit('friend_status_update', {
+                userId,
+                status
+            });
+        }
+    });
+};
+
 module.exports = (io) => {
-    io.on('connection', async (socket) => {
+    io.on('connection', (socket) => {
         console.log('🔗 User connected:', socket.id);
 
-        // When a user joins with a token
         socket.on('join', async (token) => {
             try {
                 const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -18,6 +38,10 @@ module.exports = (io) => {
                 await User.findByIdAndUpdate(userId, { isOnline: true, socketId: socket.id });
 
                 console.log(`✅ User ${userId} joined with socket ID: ${socket.id}`);
+
+                // ✅ Notify friends that this user is online
+                await notifyFriendsStatus(userId, 'online', io);
+
             } catch (error) {
                 console.error('❌ Error joining socket:', error.message);
                 socket.emit('error', { message: 'Authentication failed' });
@@ -74,7 +98,11 @@ module.exports = (io) => {
                 onlineUsers.delete(userId);
                 await User.findByIdAndUpdate(userId, { isOnline: false, socketId: '' });
                 console.log(`❌ User ${userId} disconnected`);
+                await notifyFriendsStatus(userId, 'offline', io);
             }
         });
     });
 };
+
+
+module.exports.onlineUsers = onlineUsers;
