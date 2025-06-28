@@ -58,7 +58,7 @@ exports.acceptRequest = async (req, res) => {
         }
 
         await Notification.create({
-            type : 'request_accepted',
+            type: 'request_accepted',
             sender: receiverId,
             receiver: senderId,
             text: `${req.user.name} has accepted your friend request.`
@@ -134,8 +134,12 @@ exports.getFriendList = async (req, res) => {
         }
 
         res.json(friends);
-    }catch (error) {
+    } catch (error) {
         console.error('❌ Error in getFriendList:', error);
         res.status(500).json({ message: 'Server error' });
     }
 }
+
+exports.getMutualFriends = async (req, res) => {
+    res.status(501).json({ message: "Mutual friends feature not implemented yet." });
+};
