@@ -110,3 +110,32 @@ exports.getPendingRequests = async (req, res) => {
 
     }
 }
+
+exports.getFriendList = async (req, res) => {
+    const userId = req.user.id;
+    try {
+        const sentRequests = await FriendRequest.find({
+            sender: userId,
+            status: 'accepted'
+        }).populate('receiver', 'name email');
+
+        const receivedRequests = await FriendRequest.find({
+            receiver: userId,
+            status: 'accepted'
+        }).populate('sender', 'name email');
+
+        const friends = [
+            ...sentRequests.map(req => req.receiver),
+            ...receivedRequests.map(req => req.sender)
+        ];
+
+        if (friends.length === 0) {
+            return res.status(404).json({ message: 'No friends found.' });
+        }
+
+        res.json(friends);
+    }catch (error) {
+        console.error('❌ Error in getFriendList:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+}
