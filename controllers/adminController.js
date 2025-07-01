@@ -14,13 +14,16 @@ exports.getReportedUsers = async (req, res) => {
     res.json(reports);
 };
 
-exports.banUser = async (req, res) => {
+exports.tempBanUser = async (req, res) => {
     const {userId} = req.params;
+    const {days} = req.body;
 
-    if (!userId) {
-        return res.status(400).json({ message: 'User ID is required' });
-    }
+    const banUntil = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
 
-    await User.findByIdAndDelete(userId);
-    res.json({ message: 'User banned successfully' });
+    await User.findByIdAndUpdate(userId, {
+        bannedUntil: banUntil})
+
+     res.json({
+        message : `User banned until ${banUntil.toISOString()}`
+     });
 };

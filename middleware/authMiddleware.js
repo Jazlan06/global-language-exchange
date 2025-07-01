@@ -1,9 +1,9 @@
 const jwt = require('jsonwebtoken');
+const User = require('../models/User'); 
 
-module.exports = function (req, res, next) {
+module.exports = async function (req, res, next) {
     const authHeader = req.header('Authorization');
 
-    // Check for the token
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({ message: 'No token, authorization denied' });
     }
@@ -11,10 +11,13 @@ module.exports = function (req, res, next) {
     const token = authHeader.split(' ')[1];
 
     try {
-        // Verify token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-        // Attach user data to request object
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user = await User.findById(decoded.id);
+        if(user?.bannedUntil && user.bannedUntil > new Date()){
+            return res.status(403).json({ message:`You are banned until ${user.bannedUntil}` });
+        }
+
         req.user = decoded;
 
         next(); //

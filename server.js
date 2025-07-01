@@ -38,7 +38,7 @@ app.use('/api/prompts', promptRoutes);
 const xpRoutes = require('./routes/xpRoutes');
 app.use('/api/xp', xpRoutes);
 const userModerationRoutes = require('./routes/userModerationRoutes');
-app.use('/api/moderation', userModerationRoutes);
+app.use('/api/user-moderation', userModerationRoutes);
 const adminRoutes = require('./routes/adminRoutes');
 app.use('/api/admin', adminRoutes);
 const moderationRoutes = require('./routes/moderationRoutes');

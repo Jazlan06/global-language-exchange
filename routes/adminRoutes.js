@@ -6,6 +6,7 @@ const adminCheck = require('../middleware/adminMiddleware');
 
 router.get('/users', auth, adminCheck, adminController.getAllUsers);
 router.get('/reports', auth, adminCheck, adminController.getReportedUsers);
-router.delete('/ban/:userId', auth, adminCheck, adminController.banUser);
+router.delete('/ban/:userId', auth, adminCheck, adminController.tempBanUser);
+router.post('/ban/:userId', auth, adminCheck, adminController.tempBanUser);
 
 module.exports = router;
