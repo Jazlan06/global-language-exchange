@@ -39,6 +39,8 @@ const xpRoutes = require('./routes/xpRoutes');
 app.use('/api/xp', xpRoutes);
 const userModerationRoutes = require('./routes/userModerationRoutes');
 app.use('/api/moderation', userModerationRoutes);
+const adminRoutes = require('./routes/adminRoutes');
+app.use('/api/admin', adminRoutes);
 
 socketManager(io);
 
