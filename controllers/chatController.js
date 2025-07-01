@@ -1,11 +1,23 @@
 const Chat = require('../models/Chat');
 const Message = require('../models/Message');
-// Create or get chat between two users
+const BlockedUser = require('../models/BlockedUser');
+
 exports.createOrGetChat = async (req, res) => {
     const { recipientId } = req.body;
     const userId = req.user.id;
 
     try {
+        const isBlocked = await BlockedUser.findOne({
+            $or: [
+                { blocker: userId, blocked: recipientId },
+                { blocker: recipientId, blocked: userId }
+            ]
+        });
+
+        if (isBlocked) {
+            return res.status(403).json({ message: 'Chat not allowed. One of the users has blocked the other.' });
+        }
+
         let chat = await Chat.findOne({
             participants: { $all: [userId, recipientId] }
         }).populate('participants', 'name email');
@@ -22,7 +34,6 @@ exports.createOrGetChat = async (req, res) => {
     }
 };
 
-// Send message in chat
 exports.sendMessage = async (req, res) => {
     const { chatId, text } = req.body;
     const sender = req.user.id;
@@ -30,6 +41,20 @@ exports.sendMessage = async (req, res) => {
     try {
         const chat = await Chat.findById(chatId);
         if (!chat) return res.status(404).json({ message: 'Chat not found' });
+
+        const recipient = chat.participants.find(p => p.toString() !== sender);
+        if (!recipient) return res.status(400).json({ message: 'Invalid chat participants' });
+
+        const isBlocked = await BlockedUser.findOne({
+            $or: [
+                { blocker: sender, blocked: recipient },
+                { blocker: recipient, blocked: sender }
+            ]
+        });
+
+        if (isBlocked) {
+            return res.status(403).json({ message: 'Message blocked. One of the users has blocked the other.' });
+        }
 
         const message = await Message.create({
             chat: chatId,
@@ -47,7 +72,6 @@ exports.sendMessage = async (req, res) => {
     }
 };
 
-// Get all chats for current user
 exports.getChats = async (req, res) => {
     const userId = req.user.id;
 
@@ -63,7 +87,6 @@ exports.getChats = async (req, res) => {
     }
 };
 
-// Get messages for a chat
 exports.getMessages = async (req, res) => {
     const chatId = req.params.chatId;
 

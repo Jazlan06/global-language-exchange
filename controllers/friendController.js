@@ -1,10 +1,22 @@
 const FriendRequest = require('../models/FriendRequest');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
+const BlockedUser = require('../models/BlockedUser');
 
 exports.sendRequest = async (req, res) => {
     const senderId = req.user.id;
     const { receiverId } = req.body;
+
+    const isBlocked = await BlockedUser.findOne({
+        $or: [
+            { blocker: senderId, blocked: receiverId },
+            { blocker: receiverId, blocked: senderId }
+        ]
+    });
+
+    if (isBlocked) {
+        return res.status(403).json({ message: 'Cannot send request. One of the users has blocked the other.' });
+    }
 
     if (senderId === receiverId) {
         return res.status(400).json({ message: "You can't send a request to yourself." });
