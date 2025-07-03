@@ -1,75 +1,99 @@
 const XP = require('../models/XP');
 
 const isNextDay = (lastDate, currentDate) => {
-  if (!lastDate) return false;
-  const last = new Date(lastDate).setHours(0, 0, 0, 0);
-  const current = new Date(currentDate).setHours(0, 0, 0, 0);
-  return current - last === 24 * 60 * 60 * 1000; // 1 day in ms
+    if (!lastDate) return false;
+    const last = new Date(lastDate).setHours(0, 0, 0, 0);
+    const current = new Date(currentDate).setHours(0, 0, 0, 0);
+    return current - last === 24 * 60 * 60 * 1000; // 1 day in ms
 };
 
 exports.updateXP = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const xpToAdd = req.body.xp || 10;
-    const today = new Date();
+    try {
+        const userId = req.user.id;
+        const xpToAdd = req.body.xp || 10;
+        const today = new Date();
 
-    let userXP = await XP.findOne({ user: userId });
+        let userXP = await XP.findOne({ user: userId });
 
-    if (!userXP) {
-      userXP = new XP({
-        user: userId,
-        xp: xpToAdd,
-        streak: 1,
-        lastActiveDate: today,
-      });
-    } else {
-      const lastActive = userXP.lastActiveDate ? new Date(userXP.lastActiveDate) : null;
+        if (!userXP) {
+            userXP = new XP({
+                user: userId,
+                xp: xpToAdd,
+                streak: 1,
+                lastActiveDate: today,
+            });
+        } else {
+            const lastActive = userXP.lastActiveDate ? new Date(userXP.lastActiveDate) : null;
 
-      if (lastActive && lastActive.toDateString() === today.toDateString()) {
-     
-        userXP.xp += xpToAdd;
-      } else if (isNextDay(lastActive, today)) {
-        userXP.streak += 1;
-        userXP.xp += xpToAdd;
-        userXP.lastActiveDate = today;
-      } else {
-        userXP.streak = 1;
-        userXP.xp += xpToAdd;
-        userXP.lastActiveDate = today;
-      }
+            if (lastActive && lastActive.toDateString() === today.toDateString()) {
+
+                userXP.xp += xpToAdd;
+            } else if (isNextDay(lastActive, today)) {
+                userXP.streak += 1;
+                userXP.xp += xpToAdd;
+                userXP.lastActiveDate = today;
+            } else {
+                userXP.streak = 1;
+                userXP.xp += xpToAdd;
+                userXP.lastActiveDate = today;
+            }
+        }
+
+        await userXP.save();
+
+        res.json({
+            message: 'XP updated',
+            xp: userXP.xp,
+            streak: userXP.streak,
+            lastActiveDate: userXP.lastActiveDate,
+        });
+    } catch (err) {
+        console.error('❌ Error updating XP:', err);
+        res.status(500).json({ message: 'Server error' });
     }
-
-    await userXP.save();
-
-    res.json({
-      message: 'XP updated',
-      xp: userXP.xp,
-      streak: userXP.streak,
-      lastActiveDate: userXP.lastActiveDate,
-    });
-  } catch (err) {
-    console.error('❌ Error updating XP:', err);
-    res.status(500).json({ message: 'Server error' });
-  }
 };
 
 exports.getXP = async (req, res) => {
-  try {
-    const userId = req.user.id;
+    try {
+        const userId = req.user.id;
 
-    const userXP = await XP.findOne({ user: userId });
+        const userXP = await XP.findOne({ user: userId });
 
-    if (!userXP) {
-      return res.status(404).json({ message: 'XP data not found for user' });
+        if (!userXP) {
+            return res.status(404).json({ message: 'XP data not found for user' });
+        }
+
+        res.json({
+            xp: userXP.xp,
+            streak: userXP.streak,
+            lastActiveDate: userXP.lastActiveDate,
+        });
+    } catch (error) {
+        console.error('❌ Error in getXP:', error);
+        res.status(500).json({ message: 'Server error' });
     }
-
-    res.json({
-      xp: userXP.xp,
-      streak: userXP.streak,
-      lastActiveDate: userXP.lastActiveDate,
-    });
-  } catch (error) {
-    console.error('❌ Error in getXP:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
 };
+
+
+exports.getLeaderboard = async (req, res) => {
+    try {
+        const topUsers = await XP.find({})
+            .sort({ xp: -1 })
+            .limit(20)
+            .populate('user', 'name profilePic');
+
+      const leaderboard = topUsers.map((entry, index) => ({
+            rank: index + 1,
+            userId: entry.user._id,
+            name: entry.user.name,
+            profilePic: entry.user.profilePic,
+            xp: entry.xp,
+            streak: entry.streak
+        }));
+
+        res.json({leaderboard});
+    } catch (err) {
+        console.error('Error fetching leaderboard:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+}

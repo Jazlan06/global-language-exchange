@@ -5,5 +5,7 @@ const auth = require('../middleware/authMiddleware');
 
 router.get('/me', auth, xpController.getXP);
 router.post('/update', auth, xpController.updateXP);
+router.get('/leaderboard', auth, xpController.getLeaderboard);
+
 
 module.exports = router;
