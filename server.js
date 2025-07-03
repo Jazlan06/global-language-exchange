@@ -43,6 +43,9 @@ const adminRoutes = require('./routes/adminRoutes');
 app.use('/api/admin', adminRoutes);
 const moderationRoutes = require('./routes/moderationRoutes');
 app.use('/api/moderation', moderationRoutes);
+const challengeRoutes = require('./routes/challengeRoutes');
+app.use('/api/challenges', challengeRoutes);
+
 
 
 socketManager(io);
