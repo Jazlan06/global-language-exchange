@@ -36,17 +36,29 @@ const userSchema = new mongoose.Schema({
         enum: ['user', 'admin'],
         default: 'user'
     },
-    isBanned:{
-        type : Boolean,
-        default : false
+    isBanned: {
+        type: Boolean,
+        default: false
     },
-    bannedUntil :{
-        type : Date,
+    bannedUntil: {
+        type: Date,
         default: null
     },
-    isAdmin:{
-        type : Boolean,
-        default : false
+    isAdmin: {
+        type: Boolean,
+        default: false
+    },
+    challengeStreak: {
+        type: Number,
+        default: 0
+    },
+    lastChallengeDate: {
+        type: String,
+        default: null
+    },
+    totalChallengeCompleted: {
+        type: Number,
+        default: 0
     }
 });
 
