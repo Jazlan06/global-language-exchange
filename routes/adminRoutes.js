@@ -8,5 +8,6 @@ router.get('/users', auth, adminCheck, adminController.getAllUsers);
 router.get('/reports', auth, adminCheck, adminController.getReportedUsers);
 router.delete('/ban/:userId', auth, adminCheck, adminController.tempBanUser);
 router.post('/ban/:userId', auth, adminCheck, adminController.tempBanUser);
+router.get('/dashboard/stats', auth, adminCheck, adminController.getDashboardStats)
 
 module.exports = router;

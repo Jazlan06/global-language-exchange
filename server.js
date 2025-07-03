@@ -7,12 +7,12 @@ const socketManager = require('./sockets/socketManager');
 const app = express();
 const server = http.createServer(app);
 const io = require('socket.io')(server, {
-    cors:{
+    cors: {
         origin: '*',
         methods: ['GET', 'POST'],
     }
 });
-const cleanupOnlineUsers = require('./utils/cleanupOnlineUsers');   
+const cleanupOnlineUsers = require('./utils/cleanupOnlineUsers');
 
 connectDB();
 
@@ -52,8 +52,8 @@ setInterval(() => {
 }, 5 * 60 * 1000);
 
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Internal server error' });
+    console.error(err.stack);
+    res.status(500).json({ message: 'Internal server error' });
 });
 
 
