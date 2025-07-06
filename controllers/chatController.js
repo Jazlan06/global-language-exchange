@@ -1,6 +1,7 @@
 const Chat = require('../models/Chat');
 const Message = require('../models/Message');
 const BlockedUser = require('../models/BlockedUser');
+const mongoose = require('mongoose');
 
 exports.createOrGetChat = async (req, res) => {
     const { recipientId } = req.body;
@@ -35,8 +36,13 @@ exports.createOrGetChat = async (req, res) => {
 };
 
 exports.sendMessage = async (req, res) => {
-    const { chatId, text } = req.body;
+    const { chatId, text, otherUserId } = req.body;
+    console.log('sendMessage received:', { chatId, otherUserId, text });
     const sender = req.user.id;
+    if (!mongoose.Types.ObjectId.isValid(chatId)) {
+        console.log('❌ Invalid chatId');
+        return res.status(400).json({ message: 'Invalid chatId format' });
+    }
 
     try {
         const chat = await Chat.findById(chatId);
@@ -59,7 +65,7 @@ exports.sendMessage = async (req, res) => {
         const message = await Message.create({
             chat: chatId,
             sender,
-            text
+            text,
         });
 
         chat.updatedAt = Date.now();

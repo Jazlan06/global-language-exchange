@@ -3,8 +3,7 @@ const User = require('../models/User');
 const Chat = require('../models/Chat');
 const FriendRequest = require('../models/FriendRequest');
 
-const onlineUsers = new Map(); // Map to store online users
-
+const onlineUsers = new Map();
 const notifyFriendsStatus = async (userId, status, io) => {
     const sent = await FriendRequest.find({ sender: userId, status: 'accepted' });
     const received = await FriendRequest.find({ receiver: userId, status: 'accepted' });
@@ -54,6 +53,7 @@ module.exports = (io) => {
                 io.to(receipentSocket).emit('receive_message', {
                     from: message.sender,
                     text: message.text,
+                    originalText: message.text,
                     chatId: message.chatId,
                     createdAt: new Date()
                 });
