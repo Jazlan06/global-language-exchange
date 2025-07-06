@@ -44,7 +44,7 @@ exports.completeTodayChallenge = async (req, res) => {
                 message: `Challenge already completed today`
             })
         }
-        await CompleteChallemge.create({
+        await CompletedChallenge.create({
             user: req.user.id,
             date: today
         });

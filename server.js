@@ -13,6 +13,7 @@ const io = require('socket.io')(server, {
     }
 });
 const cleanupOnlineUsers = require('./utils/cleanupOnlineUsers');
+const scheduleDailyChallenge = require('./cron/dailyChallengeCron');
 
 connectDB();
 
@@ -46,9 +47,8 @@ app.use('/api/moderation', moderationRoutes);
 const challengeRoutes = require('./routes/challengeRoutes');
 app.use('/api/challenges', challengeRoutes);
 
-
-
 socketManager(io);
+scheduleDailyChallenge();
 
 setInterval(() => {
     cleanupOnlineUsers(io, require('./sockets/socketManager').onlineUsers);
