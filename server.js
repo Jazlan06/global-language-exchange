@@ -4,6 +4,9 @@ const cors = require('cors');
 const connectDB = require('./config/db');
 const http = require('http');
 const socketManager = require('./sockets/socketManager');
+const rateLimiter = require('./middleware/rateLimiter');
+const sanitizer = require('perfect-express-sanitizer');
+const helmet = require('helmet');
 const app = express();
 const server = http.createServer(app);
 const io = require('socket.io')(server, {
@@ -15,8 +18,18 @@ const io = require('socket.io')(server, {
 const cleanupOnlineUsers = require('./utils/cleanupOnlineUsers');
 const scheduleDailyChallenge = require('./cron/dailyChallengeCron');
 
+
 connectDB();
 
+app.use(
+    sanitizer.clean({
+        xss: true,
+        noSql: true,
+        sql: true,
+    })
+);
+app.use(helmet());
+app.use(rateLimiter);
 app.use(cors());
 app.use(express.json());
 
