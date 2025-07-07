@@ -59,7 +59,11 @@ const userSchema = new mongoose.Schema({
     totalChallengeCompleted: {
         type: Number,
         default: 0
-    }
+    },
+    badges:{
+        type : {String},
+        default : []
+    },
 });
 
 module.exports = mongoose.model('User', userSchema);

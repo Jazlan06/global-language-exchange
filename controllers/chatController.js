@@ -1,6 +1,7 @@
 const Chat = require('../models/Chat');
 const Message = require('../models/Message');
 const BlockedUser = require('../models/BlockedUser');
+const badgeService = require('../services/badgeService');
 const mongoose = require('mongoose');
 
 exports.createOrGetChat = async (req, res) => {
@@ -70,7 +71,7 @@ exports.sendMessage = async (req, res) => {
 
         chat.updatedAt = Date.now();
         await chat.save();
-
+        await badgeService.checkBadgesForUser(req.user);
         res.json(message);
     } catch (err) {
         console.error('❌ Error in sendMessage:', err);

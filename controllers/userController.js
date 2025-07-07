@@ -1,5 +1,19 @@
 const User = require('../models/User');
 const FriendRequest = require('../models/FriendRequest');
+const badges = require('../utils/badges');
+
+exports.getMyBadges = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id, 'badges');
+        const detailed = user.badges.map(bKey => badges[bKey.toUpperCase()]);
+        res.json({
+            badges: detailed
+        });
+    } catch (err) {
+        console.error('Failed to fetch badges:', err);
+        res.status(500).json({ message: 'Failed to fetch badges' });
+    }
+}
 
 exports.getProfile = async (req, res) => {
     try {
@@ -48,27 +62,27 @@ exports.updateProfile = async (req, res) => {
 }
 
 exports.getOnlineFriends = async (req, res) => {
-  try {
-    const userId = req.user.id;
+    try {
+        const userId = req.user.id;
 
-    const sent = await FriendRequest.find({ sender: userId, status: 'accepted' });
-    const received = await FriendRequest.find({ receiver: userId, status: 'accepted' });
+        const sent = await FriendRequest.find({ sender: userId, status: 'accepted' });
+        const received = await FriendRequest.find({ receiver: userId, status: 'accepted' });
 
-    const friendIds = [
-      ...sent.map(r => r.receiver.toString()),
-      ...received.map(r => r.sender.toString())
-    ];
+        const friendIds = [
+            ...sent.map(r => r.receiver.toString()),
+            ...received.map(r => r.sender.toString())
+        ];
 
-    const onlineFriends = await User.find({
-      _id: { $in: friendIds },
-      isOnline: true
-    }, '_id name email isOnline');
+        const onlineFriends = await User.find({
+            _id: { $in: friendIds },
+            isOnline: true
+        }, '_id name email isOnline');
 
-    res.json({ onlineFriends });
-  } catch (error) {
-    console.error('❌ Error fetching online friends:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
+        res.json({ onlineFriends });
+    } catch (error) {
+        console.error('❌ Error fetching online friends:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
 };
 
 

@@ -2,6 +2,7 @@ const DailyChallenge = require('../models/DailyChallenge');
 const CompletedChallenge = require('../models/CompletedChallenge');
 const User = require('../models/User');
 const { generateRandomChallengeText } = require('../utils/challengeGenerator');
+const badgeService = require('../services/badgeService');
 
 const getTodayDate = () => {
     return new Date().toISOString().split('T')[0];
@@ -67,11 +68,14 @@ exports.completeTodayChallenge = async (req, res) => {
         user.xp = (user.xp || 0) + XP_REWARD;
 
         await user.save();
+        const earnedBadges = await badgeService.checkBadgesForUser(user);
         res.json({
             message: `Challenge marked as completed`,
             xpGranted: XP_REWARD,
             streak: user.challengeStreak,
-            totalXP: user.xp
+            totalXP: user.xp,
+            earnedBadges,
+            badges: user.badges
         });
     } catch (err) {
         console.error('Error completing challenge:', err);

@@ -16,6 +16,7 @@ router.get('/all', auth, async (req, res) => {
 });
 router.get('/friends/online', auth, userController.getOnlineFriends);
 router.get('/online', auth, userController.getAllOnlineUsers);
+router.get('/me/badges', auth, userController.getMyBadges);
 
 
 

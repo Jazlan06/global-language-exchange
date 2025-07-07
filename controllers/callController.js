@@ -1,4 +1,5 @@
 const CallSession = require('../models/CallSession');
+const badgeService = require('../services/badgeService');
 
 exports.startCall = async (req, res) => {
     const { chatId, receiverId } = req.body;
@@ -32,6 +33,7 @@ exports.endCall = async (req, res) => {
         }
 
         await session.save();
+        await badgeService.checkBadgesForUser(req.user);
         res.json({ message: 'Call ended successfully', session });
     } catch (error) {
         console.error('❌ Error in endCall:', error);
