@@ -14,10 +14,10 @@ const scheduleDailyChallenge = require('./cron/dailyChallengeCron');
 const app = express();
 const server = http.createServer(app);
 const io = require('socket.io')(server, {
-  cors: {
-    origin: '*',
-    methods: ['GET', 'POST'],
-  }
+    cors: {
+        origin: '*',
+        methods: ['GET', 'POST'],
+    }
 });
 
 connectDB();
@@ -42,21 +42,23 @@ app.use('/api/user-moderation', require('./routes/userModerationRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/moderation', require('./routes/moderationRoutes'));
 app.use('/api/challenges', require('./routes/challengeRoutes'));
+app.use('/api/groups', require('./routes/groupRoutes'));
+app.use('/api/group-messages', require('./routes/groupMessageRoutes'));
 
 socketManager(io);
 
 scheduleDailyChallenge();
 
 setInterval(() => {
-  cleanupOnlineUsers(io, require('./sockets/socketManager').onlineUsers);
+    cleanupOnlineUsers(io, require('./sockets/socketManager').onlineUsers);
 }, 5 * 60 * 1000); // every 5 minutes
 
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Internal server error' });
+    console.error(err.stack);
+    res.status(500).json({ message: 'Internal server error' });
 });
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
 });

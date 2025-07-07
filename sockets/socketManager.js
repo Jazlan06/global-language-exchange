@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Chat = require('../models/Chat');
 const FriendRequest = require('../models/FriendRequest');
+const GroupMessage = require('../models/GroupMessage');
 
 const onlineUsers = new Map();
 const notifyFriendsStatus = async (userId, status, io) => {
@@ -27,6 +28,32 @@ const notifyFriendsStatus = async (userId, status, io) => {
 module.exports = (io) => {
     io.on('connection', (socket) => {
         console.log('🔗 User connected:', socket.id);
+
+        socket.on('join_group', ({ groupId }) => {
+            socket.join(groupId);
+            console.log(`🧑‍🤝‍🧑 Socket ${socket.id} joined group ${groupId}`);
+        });
+
+        socket.on('send_message', async ({ groupId, message }) => {
+            try {
+                const userId = [...onlineUsers.entries()].find(([_, id]) => id === socket.id)?.[0];
+                if (!userId) return;
+                const newMessage = await GroupMessage.create({
+                    group: groupId,
+                    sender: userId,
+                    text: message
+                });
+
+                io.to(groupId).emit('group_message', {
+                    groupId,
+                    sender: userId,
+                    text: message,
+                    createdAt: newMessage.createdAt
+                });
+            } catch (err) {
+                console.error('❌ Error sending group message:', err.message);
+            }
+        })
 
         socket.on('join', async (token) => {
             try {
