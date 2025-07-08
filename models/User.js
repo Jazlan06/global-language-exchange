@@ -61,7 +61,7 @@ const userSchema = new mongoose.Schema({
         default: 0
     },
     badges:{
-        type : {String},
+        type : [String],
         default : []
     },
 });

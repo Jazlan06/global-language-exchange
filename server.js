@@ -44,6 +44,8 @@ app.use('/api/moderation', require('./routes/moderationRoutes'));
 app.use('/api/challenges', require('./routes/challengeRoutes'));
 app.use('/api/groups', require('./routes/groupRoutes'));
 app.use('/api/group-messages', require('./routes/groupMessageRoutes'));
+app.use('/api/lessons', require('./routes/lessonRoutes'));
+app.use('/api/quizzes', require('./routes/quizRoutes'));
 
 socketManager(io);
 
