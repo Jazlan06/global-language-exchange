@@ -4,7 +4,7 @@ const isNextDay = (lastDate, currentDate) => {
     if (!lastDate) return false;
     const last = new Date(lastDate).setHours(0, 0, 0, 0);
     const current = new Date(currentDate).setHours(0, 0, 0, 0);
-    return current - last === 24 * 60 * 60 * 1000; // 1 day in ms
+    return current - last === 24 * 60 * 60 * 1000;
 };
 
 exports.updateXP = async (req, res) => {
@@ -12,6 +12,7 @@ exports.updateXP = async (req, res) => {
         const userId = req.user.id;
         const xpToAdd = req.body.xp || 10;
         const today = new Date();
+        const todayStr = today.toDateString();
 
         let userXP = await XP.findOne({ user: userId });
 
@@ -19,33 +20,43 @@ exports.updateXP = async (req, res) => {
             userXP = new XP({
                 user: userId,
                 xp: xpToAdd,
+                xpToday: xpToAdd,
                 streak: 1,
                 lastActiveDate: today,
+                lastReset: today,
             });
         } else {
-            const lastActive = userXP.lastActiveDate ? new Date(userXP.lastActiveDate) : null;
-
-            if (lastActive && lastActive.toDateString() === today.toDateString()) {
-
-                userXP.xp += xpToAdd;
-            } else if (isNextDay(lastActive, today)) {
-                userXP.streak += 1;
-                userXP.xp += xpToAdd;
-                userXP.lastActiveDate = today;
-            } else {
-                userXP.streak = 1;
-                userXP.xp += xpToAdd;
-                userXP.lastActiveDate = today;
+            const lastResetStr = userXP.lastReset?.toDateString() ?? null;
+            if (lastResetStr !== todayStr) {
+                userXP.xpToday = 0;
+                userXP.lastReset = today;
             }
+
+            userXP.xpToday += xpToAdd;
+            userXP.xp += xpToAdd;
+
+            const lastActiveStr = userXP.lastActiveDate?.toDateString() ?? null;
+
+            if (lastActiveStr !== todayStr) {
+                if (isNextDay(userXP.lastActiveDate, today)) {
+                    userXP.streak += 1;
+                } else {
+                    userXP.streak = 1;
+                }
+            }
+
+            userXP.lastActiveDate = today;
         }
 
         await userXP.save();
 
         res.json({
             message: 'XP updated',
-            xp: userXP.xp,
+            totalXP: userXP.xp,
+            xpToday: userXP.xpToday,
             streak: userXP.streak,
             lastActiveDate: userXP.lastActiveDate,
+            lastReset: userXP.lastReset,
         });
     } catch (err) {
         console.error('❌ Error updating XP:', err);
@@ -65,15 +76,16 @@ exports.getXP = async (req, res) => {
 
         res.json({
             xp: userXP.xp,
+            xpToday: userXP.xpToday,
             streak: userXP.streak,
             lastActiveDate: userXP.lastActiveDate,
+            lastReset: userXP.lastReset,
         });
     } catch (error) {
         console.error('❌ Error in getXP:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };
-
 
 exports.getLeaderboard = async (req, res) => {
     try {
@@ -88,21 +100,116 @@ exports.getLeaderboard = async (req, res) => {
             name: entry.user.name,
             profilePic: entry.user.profilePic,
             xp: entry.xp,
-            streak: entry.streak
+            streak: entry.streak,
+            xpToday: entry.xpToday || 0,
         }));
 
         const allUsersSorted = await XP.find({}).sort({ xp: -1 }).select('user');
         const userIdStr = req.user.id.toString();
         const userRankIndex = allUsersSorted.findIndex(u => u.user.toString() === userIdStr);
 
-        let userRank = null;
-        if(userRankIndex !== -1){
-            userRank = userRankIndex + 1;
-        }
-
-        res.json({ leaderboard, userRank});
+        res.json({
+            leaderboard,
+            userRank: userRankIndex !== -1 ? userRankIndex + 1 : null
+        });
     } catch (err) {
-        console.error('Error fetching leaderboard:', err);
+        console.error('❌ Error fetching leaderboard:', err);
         res.status(500).json({ message: 'Server error' });
     }
-}
+};
+
+exports.getDailyLeaderboard = async (req, res) => {
+    try {
+        const topUsers = await XP.find({})
+            .sort({ xpToday: -1 })
+            .limit(20)
+            .populate('user', 'name profilePic');
+
+        const leaderboard = topUsers.map((entry, index) => ({
+            rank: index + 1,
+            userId: entry.user._id,
+            name: entry.user.name,
+            profilePic: entry.user.profilePic,
+            xpToday: entry.xpToday
+        }));
+
+        const allSorted = await XP.find({}).sort({ xpToday: -1 }).select('user');
+        const userIdStr = req.user.id.toString();
+        const userRankIndex = allSorted.findIndex(u => u.user.toString() === userIdStr);
+
+        res.json({
+            leaderboard,
+            userRank: userRankIndex !== -1 ? userRankIndex + 1 : null
+        });
+    } catch (err) {
+        console.error('❌ Error fetching daily leaderboard:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+exports.getFullLeaderboard = async (req, res) => {
+    console.log('🔁 Entered getFullLeaderboard');
+    try {
+        const now = new Date();
+        const todayStart = new Date(now.setHours(0, 0, 0, 0));
+        const weekStart = new Date(todayStart);
+        weekStart.setDate(weekStart.getDate() - 7);
+        const monthStart = new Date(todayStart);
+        monthStart.setMonth(monthStart.getMonth() - 1);
+
+        async function getLeaderboardFor(field, timeframeStart = null) {
+            const sortObj = {};
+            sortObj[field] = -1;
+
+            const query = {};
+            if (field === 'xpToday' && timeframeStart) {
+                query.lastReset = { $gte: timeframeStart };
+                query[field] = { $gt: 0 };
+            }
+
+            const top = await XP.find(query)
+                .sort(sortObj)
+                .limit(20)
+                .populate('user', 'name profilePic');
+
+            const leaderboard = top.map((entry, index) => ({
+                rank: index + 1,
+                userId: entry.user._id,
+                name: entry.user.name,
+                profilePic: entry.user.profilePic,
+                value: entry[field] || 0
+            }));
+
+            const all = await XP.find(query).sort(sortObj).select('user');
+            const userIdStr = req.user.id.toString();
+            const idx = all.findIndex(u => u.user.toString() === userIdStr);
+            const userRank = idx !== -1 ? idx + 1 : null;
+
+            return { leaderboard, userRank };
+        }
+
+        const global = await getLeaderboardFor('xp');
+        const daily = await getLeaderboardFor('xpToday', todayStart);
+        const weekly = await getLeaderboardFor('xpToday', weekStart);
+        const monthly = await getLeaderboardFor('xpToday', monthStart);
+
+        const userXP = await XP.findOne({ user: req.user.id });
+        const streak = userXP ? userXP.streak : 0;
+
+        let streakBadge = null;
+        if (streak >= 30) streakBadge = '🏆 30-Day Streak';
+        else if (streak >= 7) streakBadge = '🏅 7-Day Streak';
+        else if (streak >= 3) streakBadge = '🔥 3-Day Streak';
+
+        res.json({
+            global,
+            daily,
+            weekly,
+            monthly,
+            streakBadge
+        });
+    } catch (err) {
+        console.error('❌ Error fetching full leaderboard:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
