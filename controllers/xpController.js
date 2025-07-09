@@ -82,7 +82,7 @@ exports.getLeaderboard = async (req, res) => {
             .limit(20)
             .populate('user', 'name profilePic');
 
-      const leaderboard = topUsers.map((entry, index) => ({
+        const leaderboard = topUsers.map((entry, index) => ({
             rank: index + 1,
             userId: entry.user._id,
             name: entry.user.name,
@@ -91,7 +91,16 @@ exports.getLeaderboard = async (req, res) => {
             streak: entry.streak
         }));
 
-        res.json({leaderboard});
+        const allUsersSorted = await XP.find({}).sort({ xp: -1 }).select('user');
+        const userIdStr = req.user.id.toString();
+        const userRankIndex = allUsersSorted.findIndex(u => u.user.toString() === userIdStr);
+
+        let userRank = null;
+        if(userRankIndex !== -1){
+            userRank = userRankIndex + 1;
+        }
+
+        res.json({ leaderboard, userRank});
     } catch (err) {
         console.error('Error fetching leaderboard:', err);
         res.status(500).json({ message: 'Server error' });

@@ -1,5 +1,7 @@
 const UserQuizProgress = require('../models/UserQuizProgress');
 const Quiz = require('../models/Quiz');
+const User = require('../models/User');
+
 
 
 exports.createQuiz = async (req, res) => {
@@ -53,6 +55,10 @@ exports.submitQuiz = async (req, res) => {
         });
 
         await result.save();
+
+        if (result.passed) {
+            await User.findByIdAndUpdate(req.user.id, { $inc: { xp: 50 } });
+        }
 
         res.status(200).json({
             message: 'Quiz Submitted',
