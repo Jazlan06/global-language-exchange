@@ -1,37 +1,51 @@
 const UserLessonProgress = require('../models/UserLessonProgress');
 const User = require('../models/User');
+const Lesson = require('../models/Lesson');
+const unlockNextLesson = require('./lessonController').unlockNextLesson;
 
 exports.markLessonComplete = async (req, res) => {
     try {
         const { lessonId } = req.body;
+        const userId = req.user.id;
 
         if (!lessonId) {
             return res.status(400).json({ message: 'lessonId is required' });
         }
 
-        const existing = await UserLessonProgress.findOne({
-            user: req.user.id,
-            lesson: lessonId
-        });
+        let progress = await UserLessonProgress.findOne({ user: userId, lesson: lessonId });
 
-        if (existing) {
+        if (progress && progress.status === 'completed') {
             return res.status(200).json({ message: 'Lesson already marked complete' });
         }
 
-        await UserLessonProgress.create({
-            user: req.user.id,
-            lesson: lessonId
-        });
+        if (!progress) {
+            progress = new UserLessonProgress({
+                user: userId,
+                lesson: lessonId,
+                status: 'completed',
+                completedAt: new Date(),
+            });
+        } else {
+            progress.status = 'completed';
+            progress.completedAt = new Date();
+        }
 
-        await User.findByIdAndUpdate(req.user.id, { $inc: { xp: parseInt(process.env.LESSON_XP || 20) } });
+        await progress.save();
 
-        res.status(200).json({ message: 'Lesson marked complete and 20 XP awarded' });
+        await User.findByIdAndUpdate(userId, { $inc: { xp: parseInt(process.env.LESSON_XP || 20) } });
+
+        const currentLesson = await Lesson.findById(lessonId);
+        if (currentLesson) {
+            await unlockNextLesson(userId, currentLesson.order);
+        }
+
+        res.status(200).json({ message: 'Lesson marked complete and XP awarded' });
+
     } catch (err) {
         console.error('Error marking lesson complete:', err);
         res.status(500).json({ message: 'Server error' });
     }
 };
-
 exports.getCompletedLessons = async (req, res) => {
     try {
         const lessons = await UserLessonProgress.find({
@@ -44,3 +58,49 @@ exports.getCompletedLessons = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+
+exports.initializeLessons = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const existingProgress = await UserLessonProgress.findOne({ user: userId });
+        if (existingProgress) {
+            return res.status(400).json({ message: 'Lessons already initialized' });
+        }
+
+        const firstLesson = await Lesson.findOne().sort({ order: 1 });
+        if (!firstLesson) {
+            return res.status(404).json({ message: 'No lessons found to initialize' });
+        }
+
+        const progress = new UserLessonProgress({
+            user: userId,
+            lesson: firstLesson._id,
+            status: 'unlocked',
+            completedAt: null
+        });
+        await progress.save();
+
+        res.status(200).json({ message: 'First lesson unlocked', lessonId: firstLesson._id });
+    } catch (err) {
+        console.error('Error initializing lessons:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+exports.initializeFirstLessonForUser = async (userId) => {
+    const existingProgress = await UserLessonProgress.findOne({user: userId});
+    if(existingProgress) return;
+
+    const firstLesson = await Lesson.findOne().sort({order:1});
+    if(!firstLesson) return;
+
+    const progress = new UserLessonProgress({
+        user: userId,
+        lesson: firstLesson._id,
+        status : 'unlocked',
+        completedAt : null
+    });
+
+    await progress.save();
+}

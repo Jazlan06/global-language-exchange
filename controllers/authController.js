@@ -1,6 +1,8 @@
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { initializeFirstLessonForUser } = require('./lessonProgressController');
+
 
 exports.register = async (req, res) => {
     const { name, email, password } = req.body;
@@ -15,6 +17,7 @@ exports.register = async (req, res) => {
 
         const newUser = new User({ name, email, passwordHash: hashedPassword });
         await newUser.save();
+        await initializeFirstLessonForUser(newUser._id);
 
         res.status(201).json({ message: 'User registered successfully' });
     } catch (error) {
@@ -25,7 +28,7 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
     const { email, password } = req.body;
-
+    console.log('Login attempt:', { email, password });
     try {
         const user = await User.findOne({ email });
         if (!user) {
@@ -38,13 +41,33 @@ exports.login = async (req, res) => {
         }
 
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+        const existingProgress = await UserLessonProgress.findOne({ user: user._id });
+        if (!existingProgress) {
+            const firstLesson = await Lesson.findOne().sort({ order: 1 });
+            if (firstLesson) {
+                await UserLessonProgress.create({
+                    user: user._id,
+                    lesson: firstLesson._id,
+                    status: 'unlocked',
+                    completedAt: null
+                });
+                console.log(`✅ First lesson unlocked for ${user.email}`);
+            }
+        }
+
+        const lessonProgress = await UserLessonProgress.find({
+            user: user._id
+        }).populate('lesson').select('status lesson');
+
         res.json({
             token,
             user: {
                 id: user._id,
                 name: user.name,
                 email: user.email
-            }
+            },
+            lessonProgress
         });
     } catch (error) {
         //TYpe of error

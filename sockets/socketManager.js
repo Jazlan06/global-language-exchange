@@ -34,7 +34,7 @@ module.exports = (io) => {
             console.log(`🧑‍🤝‍🧑 Socket ${socket.id} joined group ${groupId}`);
         });
 
-        socket.on('send_message', async ({ groupId, message }) => {
+        socket.on('send_group_msg', async ({ groupId, message }) => {
             try {
                 const userId = [...onlineUsers.entries()].find(([_, id]) => id === socket.id)?.[0];
                 if (!userId) return;
@@ -74,7 +74,7 @@ module.exports = (io) => {
             }
         });
 
-        socket.on('send_message', ({ receipentId, message }) => {
+        socket.on('send_message', ({ receipientId, message }) => {
             const receipentSocket = onlineUsers.get(receipentId);
             if (receipentSocket) {
                 io.to(receipentSocket).emit('receive_message', {

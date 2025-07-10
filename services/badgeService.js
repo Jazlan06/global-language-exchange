@@ -23,7 +23,7 @@ exports.checkBadgesForUser = async (req, res) => {
         awarded.push(await awardBadge(user._id, badges.STREAK_3_DAYS.key));
     }
 
-    const callCount = await CallSession.countDocumnets({
+    const callCount = await CallSession.countDocuments({
         $or: [{ caller: user._id }, { receiver: user._id }]
     });
     if (callCount === 1) {
