@@ -2,6 +2,7 @@ const UserLessonProgress = require('../models/UserLessonProgress');
 const User = require('../models/User');
 const Lesson = require('../models/Lesson');
 const unlockNextLesson = require('./lessonController').unlockNextLesson;
+const XpHistory = require('../models/XpHistory');
 
 exports.markLessonComplete = async (req, res) => {
     try {
@@ -32,7 +33,16 @@ exports.markLessonComplete = async (req, res) => {
 
         await progress.save();
 
-        await User.findByIdAndUpdate(userId, { $inc: { xp: parseInt(process.env.LESSON_XP || 20) } });
+        const xpAmount = parseInt(process.env.LESSON_XP || 20);
+        await User.findByIdAndUpdate(userId, { $inc: { xp: xpAmount } });
+
+        await XpHistory.create({
+            user: userId,
+            xp: xpAmount,
+            sourceType: 'lesson',
+            sourceId: lessonId,
+            description: `Completed lesson ${lessonId}`
+        })
 
         const currentLesson = await Lesson.findById(lessonId);
         if (currentLesson) {
@@ -89,17 +99,17 @@ exports.initializeLessons = async (req, res) => {
 };
 
 exports.initializeFirstLessonForUser = async (userId) => {
-    const existingProgress = await UserLessonProgress.findOne({user: userId});
-    if(existingProgress) return;
+    const existingProgress = await UserLessonProgress.findOne({ user: userId });
+    if (existingProgress) return;
 
-    const firstLesson = await Lesson.findOne().sort({order:1});
-    if(!firstLesson) return;
+    const firstLesson = await Lesson.findOne().sort({ order: 1 });
+    if (!firstLesson) return;
 
     const progress = new UserLessonProgress({
         user: userId,
         lesson: firstLesson._id,
-        status : 'unlocked',
-        completedAt : null
+        status: 'unlocked',
+        completedAt: null
     });
 
     await progress.save();

@@ -1,10 +1,24 @@
 const XP = require('../models/XP');
+const XpHistory = require('../models/XpHistory');
 
 const isNextDay = (lastDate, currentDate) => {
     if (!lastDate) return false;
     const last = new Date(lastDate).setHours(0, 0, 0, 0);
     const current = new Date(currentDate).setHours(0, 0, 0, 0);
     return current - last === 24 * 60 * 60 * 1000;
+};
+exports.getXPHistory = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const history = await XpHistory.find({ user: userId })
+            .sort({ createdAt: -1 })
+            .limit(100);
+
+        res.json(history);
+    } catch (err) {
+        console.error('❌ Error fetching XP history:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
 };
 
 exports.updateXP = async (req, res) => {
@@ -49,6 +63,14 @@ exports.updateXP = async (req, res) => {
         }
 
         await userXP.save();
+
+        await XpHistory.create({
+            user: userId,
+            xp: xpToAdd,
+            sourceType: 'other',
+            description: 'XP updated via updateXP API',
+            createdAt: new Date()
+        });
 
         res.json({
             message: 'XP updated',
