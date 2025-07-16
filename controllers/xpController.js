@@ -1,5 +1,6 @@
 const XP = require('../models/XP');
 const XpHistory = require('../models/XpHistory');
+const Notification = require('../models/Notification')
 
 const isNextDay = (lastDate, currentDate) => {
     if (!lastDate) return false;
@@ -38,8 +39,13 @@ exports.updateXP = async (req, res) => {
                 streak: 1,
                 lastActiveDate: today,
                 lastReset: today,
+                milestonesNotified: [],
+                streakMilestonesNotified: []
             });
         } else {
+            if (!userXP.milestonesNotified) userXP.milestonesNotified = [];
+            if (!userXP.streakMilestonesNotified) userXP.streakMilestonesNotified = [];
+
             const lastResetStr = userXP.lastReset?.toDateString() ?? null;
             if (lastResetStr !== todayStr) {
                 userXP.xpToday = 0;
@@ -50,7 +56,6 @@ exports.updateXP = async (req, res) => {
             userXP.xp += xpToAdd;
 
             const lastActiveStr = userXP.lastActiveDate?.toDateString() ?? null;
-
             if (lastActiveStr !== todayStr) {
                 if (isNextDay(userXP.lastActiveDate, today)) {
                     userXP.streak += 1;
@@ -60,6 +65,38 @@ exports.updateXP = async (req, res) => {
             }
 
             userXP.lastActiveDate = today;
+        }
+
+        const xpMilestones = [100, 500, 1000, 2000];
+        const newXpMilestones = xpMilestones.filter(
+            m => userXP.xp >= m && !userXP.milestonesNotified.includes(m)
+        );
+
+        for (const milestone of newXpMilestones) {
+            await Notification.create({
+                type: 'xp_milestone',
+                sender: userId,
+                receiver: userId,
+                text: `🎉 Congrats! You reached ${milestone} XP!`
+            });
+            userXP.milestonesNotified.push(milestone);
+        }
+
+        const streakMilestones = [7, 30, 100];
+        const newStreakMilestone = streakMilestones.find(
+            m => userXP.streak >= m && !userXP.streakMilestonesNotified?.includes(m)
+        );
+
+        if (newStreakMilestone) {
+            await Notification.create({
+                type: 'streak_milestone',
+                sender: userId,
+                receiver: userId,
+                text: `🔥 You've hit a ${newStreakMilestone}-day streak! Keep it going!`
+            });
+
+            if (!userXP.streakMilestonesNotified) userXP.streakMilestonesNotified = [];
+            userXP.streakMilestonesNotified.push(newStreakMilestone);
         }
 
         await userXP.save();

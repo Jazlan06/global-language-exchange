@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const notificationSchema = new mongoose.Schema({
     type:{
         type : String,
-        enum : ['friend_request', 'request_accepted', 'message'],
+        enum : ['friend_request', 'request_accepted', 'message','xp_milestone', 'streak', 'announcement' ],
         required: true
     },
     sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
