@@ -29,6 +29,8 @@ app.use(rateLimiter);
 app.use(cors());
 app.use(sanitizer.clean({ xss: true, noSql: true, sql: true }));
 
+app.set('io', io);
+
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/matchmaking', require('./routes/matchMakingRoutes'));

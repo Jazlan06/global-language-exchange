@@ -1,5 +1,6 @@
 const Notification = require('../models/Notification');
 const User = require('../models/User');
+const { onlineUsers } = require('../sockets/socketManager'); 
 
 exports.sendNotification = async (req, res) => {
     const { receiverId, type, message } = req.body;
@@ -11,6 +12,12 @@ exports.sendNotification = async (req, res) => {
             type,
             text: message
         });
+
+        const io = req.app.get('io');
+        const socketId = onlineUsers.get(receiverId);
+        if (socketId) {
+            io.to(socketId).emit('notification', notification);
+        }
 
         res.status(201).json(notification);
     } catch (err) {
@@ -39,7 +46,7 @@ exports.markAsRead = async (req, res) => {
     try {
         const notification = await Notification.findByIdAndUpdate(
             req.params.id,
-            { read: true },
+            { isRead: true },
             { new: true }
         );
         if (!notification) {
@@ -82,7 +89,15 @@ exports.broadcastAnnouncement = async (req, res) => {
             text: message
         }));
 
-        await Notification.insertMany(notifications);
+        const insertedNotifications = await Notification.insertMany(notifications);
+
+        const io = req.app.get('io');
+        insertedNotifications.forEach(notification =>{
+            const socketId = onlineUsers.get(notification.receiver.toString());
+            if(socketId){
+                io.to(socketId).emit('notification', notification);
+            }
+        })
 
         res.json({
             message: `Announcement sent to all users.`

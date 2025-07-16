@@ -65,7 +65,6 @@ module.exports = (io) => {
 
                 console.log(`✅ User ${userId} joined with socket ID: ${socket.id}`);
 
-                // ✅ Notify friends that this user is online
                 await notifyFriendsStatus(userId, 'online', io);
 
             } catch (error) {
