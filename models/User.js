@@ -60,13 +60,23 @@ const userSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
-    badges:{
-        type : [String],
-        default : []
+    badges: {
+        type: [String],
+        default: []
     },
-    xp:{
-        type : Number,
-        default : 0
+    xp: {
+        type: Number,
+        default: 0
+    },
+    theme: {
+        type: String,
+        enum: ['light', 'dark', 'system'],
+        default: 'system'
+    },
+    notificationPreferences: {
+        email: { type: Boolean, default: true },
+        push: { type: Boolean, default: true },
+        sms: { type: Boolean, default: false }
     }
 });
 

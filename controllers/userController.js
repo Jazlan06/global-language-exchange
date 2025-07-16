@@ -35,7 +35,9 @@ exports.updateProfile = async (req, res) => {
         languagesLearning,
         timeZone,
         interests,
-        profilePic
+        profilePic,
+        theme,
+        notificationPreferences
     } = req.body;
 
     try {
@@ -47,7 +49,9 @@ exports.updateProfile = async (req, res) => {
                 languagesLearning,
                 timeZone,
                 interests,
-                profilePic
+                profilePic,
+                theme,
+                notificationPreferences
             },
             { new: true }
         ).select('-passwordHash');
@@ -60,6 +64,28 @@ exports.updateProfile = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 }
+
+exports.updatePreferences = async (req, res) => {
+    const { theme, notificationPreferences } = req.body;
+
+    try {
+        const user = await User.findByIdAndUpdate(
+            req.user.id,
+            { theme, notificationPreferences },
+            { new: true }
+        ).select('-passwordHash');
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.json({ message: 'Preferences updated', user });
+    } catch (err) {
+        console.error('❌ Error updating preferences:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 
 exports.getOnlineFriends = async (req, res) => {
     try {
