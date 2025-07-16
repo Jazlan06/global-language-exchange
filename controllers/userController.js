@@ -86,6 +86,28 @@ exports.updatePreferences = async (req, res) => {
     }
 };
 
+exports.updatePrivacySettings = async (req, res) => {
+    const { showEmail, showOnlineStatus, profileVisibleTo } = req.body;
+
+    try {
+        const user = await User.findByIdAndUpdate(
+            req.user.id,
+            {
+                'privacy.showEmail': showEmail,
+                'privacy.showOnlineStatus': showOnlineStatus,
+                'privacy.profileVisibleTo': profileVisibleTo
+            },
+            { new: true }
+        ).select('-passwordHash');
+
+        res.json({ message: 'Privacy settings updated', user });
+    } catch (err) {
+        console.error('❌ Error updating privacy settings:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+
 
 exports.getOnlineFriends = async (req, res) => {
     try {

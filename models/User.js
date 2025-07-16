@@ -77,7 +77,16 @@ const userSchema = new mongoose.Schema({
         email: { type: Boolean, default: true },
         push: { type: Boolean, default: true },
         sms: { type: Boolean, default: false }
+    },
+    privacy: {
+    showEmail: { type: Boolean, default: true },
+    showOnlineStatus: { type: Boolean, default: true },
+    profileVisibleTo: {
+        type: String,
+        enum: ['everyone', 'friends', 'only_me'],
+        default: 'everyone'
     }
+}
 });
 
 module.exports = mongoose.model('User', userSchema);
