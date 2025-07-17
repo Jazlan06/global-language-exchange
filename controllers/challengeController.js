@@ -107,3 +107,57 @@ exports.getChallengeStats = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 }
+
+exports.createChallenge = async (req, res) => {
+    try {
+        const { date, challengeText } = req.body;
+        if (!date || !challengeText) {
+            return res.status(400).json({ message: 'Date and challengeText are required' });
+        }
+
+        const existing = await DailyChallenge.findOne({ date });
+        if (existing) {
+            return res.status(400).json({ message: 'Challenge for this date already exists' });
+        }
+
+        const challenge = new DailyChallenge({ date, challengeText });
+        await challenge.save();
+
+        res.status(201).json({ message: 'Challenge created', challenge });
+    } catch (err) {
+        console.error('Error creating challenge:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+}
+
+
+exports.updateChallenge = async (req, res) => {
+    try {
+        const { challengeId } = req.params;
+        const updateData = req.body;
+
+        const updatedChallenge = await DailyChallenge.findByIdAndUpdate(challengeId, updateData, { new: true });
+        if (!updatedChallenge) {
+            return res.status(404).json({ message: 'Challenge not found' });
+        }
+        res.json({ message: 'Challenge updated', challenge: updatedChallenge });
+    } catch (err) {
+        console.error('Error updating challenge:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+exports.deleteChallenge = async (req, res) => {
+    try {
+        const { challengeId } = req.params;
+
+        const deletedChallenge = await DailyChallenge.findByIdAndDelete(challengeId);
+        if (!deletedChallenge) {
+            return res.status(404).json({ message: 'Challenge not found' });
+        }
+        res.json({ message: 'Challenge deleted' });
+    } catch (err) {
+        console.error('Error deleting challenge:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+};

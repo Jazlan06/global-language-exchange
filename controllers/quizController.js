@@ -86,3 +86,33 @@ exports.getUserQuizProgress = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+
+exports.updateQuiz = async (req, res) => {
+    try {
+        const { quizId } = req.params;
+        const updateData = req.body;
+
+        const updatedQuiz = await Quiz.findByIdAndUpdate(quizId, updateData, { new: true });
+        if (!updatedQuiz) {
+            return res.status(404).json({ message: 'Quiz not found' });
+        }
+        res.json({ message: 'Quiz updated', quiz: updatedQuiz });
+    } catch (err) {
+        console.error('Error updating quiz:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+}
+
+exports.deleteQuiz = async (req, res) => {
+    try {
+        const { quizId } = req.params;
+        const deletedQuiz = await Quiz.findByIdAndDelete(quizId);
+        if (!deletedQuiz) {
+            return res.status(404).json({ message: 'Quiz not found' });
+        }
+        res.json({ message: 'Quiz deleted' });
+    } catch (err) {
+        console.error('Error deleting quiz:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+}

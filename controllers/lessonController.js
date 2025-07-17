@@ -3,13 +3,15 @@ const Quiz = require('../models/Quiz');
 
 exports.createLesson = async (req, res) => {
     try {
-        const { title, type, content, quizId } = req.body;
+        const { title, type, content, quizId, order, prerequisites } = req.body;
 
         const lesson = new Lesson({
             title,
             type,
             content,
-            quiz: type === 'quiz' ? quizId : null
+            quiz: type === 'quiz' ? quizId : null,
+            order,
+            prerequisites: prerequisites || []
         });
         await lesson.save();
         res.status(201).json({
@@ -42,6 +44,37 @@ exports.getLessonById = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 }
+exports.updateLesson = async (req, res) => {
+    try {
+        const { lessonId } = req.params;
+        const updateData = req.body;
+
+        // Optional: Validate updateData here if needed
+
+        const updatedLesson = await Lesson.findByIdAndUpdate(lessonId, updateData, { new: true });
+        if (!updatedLesson) {
+            return res.status(404).json({ message: 'Lesson not found' });
+        }
+        res.json({ message: 'Lesson updated', lesson: updatedLesson });
+    } catch (err) {
+        console.error('Error updating lesson:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+exports.deleteLesson = async (req, res) => {
+    try {
+        const { lessonId } = req.params;
+        const deletedLesson = await Lesson.findByIdAndDelete(lessonId);
+        if (!deletedLesson) {
+            return res.status(404).json({ message: 'Lesson not found' });
+        }
+        res.json({ message: 'Lesson deleted' });
+    } catch (err) {
+        console.error('Error deleting lesson:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
 
 async function arePrerequisitesCompleted(userId, lesson) {
     if (!lesson.prerequisites || lesson.prerequisites.length === 0) {
@@ -64,11 +97,11 @@ async function unlockNextLesson(userId, currentLessonOrder) {
 
     if (!nextLesson) return null;
 
-const alreadyProgress = await UserLessonProgress.findOne({ 
-    user: userId,
-    lesson: nextLesson._id,
-});
-if (alreadyProgress) return null;
+    const alreadyProgress = await UserLessonProgress.findOne({
+        user: userId,
+        lesson: nextLesson._id,
+    });
+    if (alreadyProgress) return null;
 
     const canUnlock = await arePrerequisitesCompleted(userId, nextLesson);
     if (!canUnlock) return null;

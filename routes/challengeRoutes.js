@@ -8,4 +8,9 @@ router.get('/today', auth, challengeController.getTodayChallenge);
 router.post('/complete', auth, challengeController.completeTodayChallenge);
 router.get('/stats', auth, admin, challengeController.getChallengeStats);
 
+// Admin routes to create/update/delete challenges manually
+router.post('/', auth, admin, challengeController.createChallenge);
+router.put('/:challengeId', auth, admin, challengeController.updateChallenge);
+router.delete('/:challengeId', auth, admin, challengeController.deleteChallenge);
+
 module.exports = router;
