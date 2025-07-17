@@ -2,9 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-const rateLimiter = require('./middleware/rateLimiter');
 const sanitizer = require('perfect-express-sanitizer');
-
+const { globalLimiter } = require('./middleware/rateLimiter');
 const connectDB = require('./config/db');
 const http = require('http');
 const socketManager = require('./sockets/socketManager');
@@ -25,10 +24,9 @@ connectDB();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(helmet());
-app.use(rateLimiter);
 app.use(cors());
 app.use(sanitizer.clean({ xss: true, noSql: true, sql: true }));
-
+app.use(globalLimiter);
 app.set('io', io);
 
 app.use('/api/auth', require('./routes/authRoutes'));

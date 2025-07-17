@@ -1,6 +1,7 @@
 const XP = require('../models/XP');
 const XpHistory = require('../models/XpHistory');
-const Notification = require('../models/Notification')
+const Notification = require('../models/Notification');
+const { abuseStrikes } = require('../middleware/rateLimiter');
 
 const isNextDay = (lastDate, currentDate) => {
     if (!lastDate) return false;
@@ -109,6 +110,10 @@ exports.updateXP = async (req, res) => {
             createdAt: new Date()
         });
 
+        if (req.user?.id) {
+            abuseStrikes.delete(req.user.id); // ✅ Reset strike count on valid usage
+        }
+        
         res.json({
             message: 'XP updated',
             totalXP: userXP.xp,
