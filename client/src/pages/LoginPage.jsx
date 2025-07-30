@@ -18,9 +18,8 @@ export default function LoginPage() {
         try {
             const data = await login(formData.email, formData.password);
             console.log('Login success:', data);
-            // TODO: store token or user info
-            // e.g. localStorage.setItem('token', data.token);
-            // redirect to dashboard
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
             window.location.href = '/dashboard';
         } catch (err) {
             setError(err?.response?.data?.message || 'Login failed');

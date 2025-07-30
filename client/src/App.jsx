@@ -1,7 +1,9 @@
-import { Route, Routes, Navigate } from "react-router-dom";
-import LoginPage from "./pages/LoginPage";
+import { Routes, Route, Navigate } from 'react-router-dom';
+import LoginPage from './pages/LoginPage.jsx';
+import RegisterPage from './pages/RegisterPage.jsx';
+// import DashboardPage from './pages/DashboardPage.jsx';
 
-const isAuthenticated = false;
+const isAuthenticated = false; // 🔒 We'll replace this with real auth later
 
 export default function App() {
     return (
@@ -10,6 +12,10 @@ export default function App() {
                 isAuthenticated ? <Navigate to="/dashboard" /> : <Navigate to="/login" />
             } />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/dashboard" element={
+                isAuthenticated ? <DashboardPage /> : <Navigate to="/login" />
+            } />
         </Routes>
-    )
+    );
 }

@@ -14,17 +14,20 @@ const app = express();
 const server = http.createServer(app);
 const io = require('socket.io')(server, {
     cors: {
-        origin: 'http://localhost:5173',
+        origin: '*',
         methods: ['GET', 'POST'],
     }
 });
-
+const corsOptions = {
+    origin: 'http://localhost:5173',
+    credentials: true, 
+};
 connectDB();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(helmet());
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(sanitizer.clean({ xss: true, noSql: true, sql: true }));
 app.use(globalLimiter);
 app.set('io', io);
