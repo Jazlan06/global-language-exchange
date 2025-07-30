@@ -57,7 +57,34 @@ exports.submitQuiz = async (req, res) => {
         await result.save();
 
         if (result.passed) {
-            await User.findByIdAndUpdate(req.user.id, { $inc: { xp: 50 } });
+            const lesson = await require('../models/Lesson').findOne({ quiz: quiz._id });
+            if (lesson) {
+                const lessonProgress = await require('../models/UserLessonProgress').findOneAndUpdate(
+                    { user: req.user.id, lesson: lesson._id },
+                    {
+                        $set: {
+                            status: 'completed',
+                            completedAt: new Date()
+                        }
+                    },
+                    { upsert: true, new: true }
+                );
+
+                const xpAmount = parseInt(process.env.LESSON_XP || 20);
+                await User.findByIdAndUpdate(req.user.id, { $inc: { xp: xpAmount } });
+
+                await require('../models/XpHistory').create({
+                    user: req.user.id,
+                    xp: xpAmount,
+                    sourceType: 'lesson',
+                    sourceId: lesson._id,
+                    description: `Completed quiz lesson ${lesson._id}`
+                });
+
+                // Unlock next lesson
+                const { unlockNextLesson } = require('./lessonController');
+                await unlockNextLesson(req.user.id, lesson.order);
+            }
         }
 
         res.status(200).json({
@@ -67,6 +94,7 @@ exports.submitQuiz = async (req, res) => {
             passed: result.passed,
             answers: detailedResults
         });
+
     } catch (err) {
         console.error('Error submitting quiz:', err);
         res.status(500).json({ message: 'Server error' });
