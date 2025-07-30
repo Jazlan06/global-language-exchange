@@ -61,6 +61,15 @@ export default function LessonPage() {
 
             if (res.data.passed) {
                 toast.success("You passed the quiz! 🎉 Lesson completed and XP awarded.");
+
+                await axios.post('http://localhost:5000/api/lesson-progress/complete', {
+                    lessonId: lesson._id
+                }, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+
             } else {
                 toast.error("You didn’t pass the quiz. Try again!");
             }
@@ -88,39 +97,41 @@ export default function LessonPage() {
                 </div>
             )}
 
-            {lesson.type === 'quiz' && lesson.quiz ? (
-                <div className="space-y-6">
-                    {lesson.quiz.questions.map((q, index) => (
-                        <div key={index} className="bg-white p-4 rounded shadow">
-                            <h3 className="font-semibold mb-2">{q.question}</h3>
-                            <div className="space-y-1">
-                                {q.choices.map((choice, i) => (
-                                    <label key={i} className="block">
-                                        <input
-                                            type="radio"
-                                            name={q.question}
-                                            value={i}
-                                            checked={selectedOptions[q.question] === i}
-                                            onChange={() => handleOptionChange(q.question, i)}
-                                            className="mr-2"
-                                        />
-                                        {choice}
-                                    </label>
-                                ))}
+            {lesson.type === 'quiz' && (
+                lesson.quiz ? (
+                    <div className="space-y-6">
+                        {lesson.quiz.questions.map((q, index) => (
+                            <div key={index} className="bg-white p-4 rounded shadow">
+                                <h3 className="font-semibold mb-2">{q.question}</h3>
+                                <div className="space-y-1">
+                                    {q.choices.map((choice, i) => (
+                                        <label key={i} className="block">
+                                            <input
+                                                type="radio"
+                                                name={q.question}
+                                                value={i}
+                                                checked={selectedOptions[q.question] === i}
+                                                onChange={() => handleOptionChange(q.question, i)}
+                                                className="mr-2"
+                                            />
+                                            {choice}
+                                        </label>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
-                    ))}
-                    <button
-                        onClick={handleSubmit}
-                        disabled={submitting}
-                        className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-                    >
-                        {submitting ? "Submitting..." : "Submit Quiz"}
-                    </button>
-                </div>
-            ) : lesson.type === 'quiz' ? (
-                <p className="text-yellow-600">Quiz not yet available.</p>
-            ) : null}
+                        ))}
+                        <button
+                            onClick={handleSubmit}
+                            disabled={submitting}
+                            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+                        >
+                            {submitting ? "Submitting..." : "Submit Quiz"}
+                        </button>
+                    </div>
+                ) : (
+                    <p className="text-yellow-600">Quiz not yet available.</p>
+                )
+            )}
 
             {lesson.type === 'audio' && (
                 <div>
