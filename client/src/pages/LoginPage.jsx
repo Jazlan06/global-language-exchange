@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { login } from '../services/authService';
+import { useAuth } from '../hooks/useAuth.jsx';
+
 
 export default function LoginPage() {
+    const { login: contextLogin } = useAuth();
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -18,8 +21,7 @@ export default function LoginPage() {
         try {
             const data = await login(formData.email, formData.password);
             console.log('Login success:', data);
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('user', JSON.stringify(data.user));
+            contextLogin(data);
             window.location.href = '/dashboard';
         } catch (err) {
             setError(err?.response?.data?.message || 'Login failed');
