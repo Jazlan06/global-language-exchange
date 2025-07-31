@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth.jsx';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 export default function DashboardPage() {
     const { user, lessons, logout, token } = useAuth();
@@ -22,6 +22,10 @@ export default function DashboardPage() {
                     >
                         Logout
                     </button>
+                    <Link to="/quizzes/progress" className="text-blue-600 hover:underline">
+                        View Quiz Progress
+                    </Link>
+
                 </header>
 
                 <section>

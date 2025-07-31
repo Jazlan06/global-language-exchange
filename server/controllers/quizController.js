@@ -105,7 +105,7 @@ exports.submitQuiz = async (req, res) => {
 exports.getUserQuizProgress = async (req, res) => {
     try {
         const progress = await UserQuizProgress.find({ user: req.user.id })
-            .populate('quiz', 'questions')
+            .populate('quiz', 'title')
             .sort({ date: -1 });
 
         res.json(progress);

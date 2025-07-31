@@ -4,6 +4,7 @@ import RegisterPage from './pages/RegisterPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import LessonPage from './pages/LessonPage.jsx';
 import LessonsListPage from './pages/LessonListPage.jsx';
+import QuizProgressPage from './pages/QuizProgressPage.jsx';
 import { useAuth } from './hooks/useAuth.jsx';
 
 export default function App() {
@@ -18,6 +19,11 @@ export default function App() {
             <Route path="/dashboard"
                 element={token ? <DashboardPage /> : <Navigate to="/login" />} />
             <Route path="/lessons" element={token ? <LessonsListPage /> : <Navigate to="/login" />} />
-            <Route path="/lessons/:id" element={token ? <LessonPage /> : <Navigate to="/login" />} />        </Routes>
+            <Route path="/lessons/:id" element={token ? <LessonPage /> : <Navigate to="/login" />} />
+            <Route
+                path="/quizzes/progress"
+                element={token ? <QuizProgressPage /> : <Navigate to="/login" />}
+            />
+        </Routes>
     );
 }
