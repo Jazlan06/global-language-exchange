@@ -5,6 +5,7 @@ import DashboardPage from './pages/DashboardPage.jsx';
 import LessonPage from './pages/LessonPage.jsx';
 import LessonsListPage from './pages/LessonListPage.jsx';
 import QuizProgressPage from './pages/QuizProgressPage.jsx';
+import AdminQuizPage from "./pages/AdminQuizPage.jsx";
 import { useAuth } from './hooks/useAuth.jsx';
 
 export default function App() {
@@ -24,6 +25,7 @@ export default function App() {
                 path="/quizzes/progress"
                 element={token ? <QuizProgressPage /> : <Navigate to="/login" />}
             />
+            <Route path="/admin/quizzes" element={<AdminQuizPage />} />
         </Routes>
     );
 }

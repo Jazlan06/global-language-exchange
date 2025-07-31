@@ -7,7 +7,8 @@ const admin = require('../middleware/adminMiddleware')
 router.post('/submit', auth, quizController.submitQuiz);
 router.get('/progress', auth, quizController.getUserQuizProgress);
 // Admin only routes for quizzes
-router.post('/', auth, admin, quizController.createQuiz);
+router.get('/', auth, admin, quizController.getAllQuizzes);
+router.post('/create', auth, admin, quizController.createQuiz);
 router.put('/:quizId', auth, admin, quizController.updateQuiz);
 router.delete('/:quizId', auth, admin, quizController.deleteQuiz);
 

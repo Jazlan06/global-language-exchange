@@ -144,3 +144,13 @@ exports.deleteQuiz = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 }
+
+exports.getAllQuizzes = async (req, res) => {
+    try {
+        const quizzes = await Quiz.find().sort({ createdAt: -1 });
+        res.json(quizzes);
+    } catch (err) {
+        console.error('Error fetching quizzes:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
