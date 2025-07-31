@@ -2,8 +2,15 @@ const UserQuizProgress = require('../models/UserQuizProgress');
 const Quiz = require('../models/Quiz');
 const User = require('../models/User');
 
-
-
+exports.getUserProgress = async (req, res) => {
+    try {
+        const progress = await UserQuizProgress.find({ user: req.user.id });
+        res.json(progress); 
+    } catch (err) {
+        console.error('❌ Error getting quiz progress:', err);
+        res.status(500).json({ message: 'Failed to get quiz progress' });
+    }
+};
 exports.createQuiz = async (req, res) => {
     try {
         const { questions } = req.body;

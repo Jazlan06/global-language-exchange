@@ -49,7 +49,7 @@ app.use('/api/groups', require('./routes/groupRoutes'));
 app.use('/api/group-messages', require('./routes/groupMessageRoutes'));
 app.use('/api/lessons', require('./routes/lessonRoutes'));
 app.use('/api/quizzes', require('./routes/quizRoutes'));
-app.use('/api/lesson-progress', require('./routes/lessonProgressRoutes'));
+app.use('/api/lesson/progress', require('./routes/lessonProgressRoutes'));
 
 socketManager(io);
 

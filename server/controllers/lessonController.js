@@ -1,5 +1,16 @@
 const Lesson = require('../models/Lesson');
 const Quiz = require('../models/Quiz');
+const UserLessonProgress = require('../models/UserLessonProgress');
+
+exports.getUserProgress = async (req, res) => {
+    try {
+        const progress = await UserLessonProgress.find({ user: req.user.id });
+        res.json(progress); 
+    } catch (err) {
+        console.error('❌ Error getting lesson progress:', err);
+        res.status(500).json({ message: 'Failed to get lesson progress' });
+    }
+};
 
 exports.createLesson = async (req, res) => {
     try {
