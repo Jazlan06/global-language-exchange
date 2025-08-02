@@ -112,7 +112,7 @@ exports.getPendingRequests = async (req, res) => {
         }).populate('sender', 'name email');
 
         if (requests.length === 0) {
-            return res.status(404).json({ message: 'No pending friend requests.' });
+            return res.json([]);
         }
 
         res.json(requests);
@@ -142,7 +142,7 @@ exports.getFriendList = async (req, res) => {
         ];
 
         if (friends.length === 0) {
-            return res.status(404).json({ message: 'No friends found.' });
+            return res.json([]);
         }
 
         res.json(friends);

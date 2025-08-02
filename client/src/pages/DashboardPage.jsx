@@ -1,6 +1,8 @@
 import React, { useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { useNavigate, Link } from 'react-router-dom';
+import PendingRequestsPanel from '../components/PendingRequestPanel.jsx';
+import FriendList from '../components/FriendList.jsx';
 
 export default function DashboardPage() {
     const { user, lessons, logout, token } = useAuth();
@@ -22,11 +24,17 @@ export default function DashboardPage() {
                     >
                         Logout
                     </button>
+
                     <Link to="/quizzes/progress" className="text-blue-600 hover:underline">
                         View Quiz Progress
                     </Link>
 
                 </header>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                    <PendingRequestsPanel />
+                    <FriendList />
+                </div>
 
                 <section>
                     <h2 className="text-2xl font-semibold mb-4">Your Lesson Progress</h2>
