@@ -137,12 +137,9 @@ exports.getOnlineFriends = async (req, res) => {
 exports.getAllOnlineUsers = async (req, res) => {
     try {
         const users = await User.find({ isOnline: true }, 'name email');
-        if (users.length === 0) {
-            return res.status(404).json({ message: 'No online users found' });
-        }
         res.json({ onlineUsers: users });
     } catch (error) {
         console.error('❌ Error in getAllOnlineUsers:', error);
         res.status(500).json({ message: 'Server error' });
     }
-}
+};
