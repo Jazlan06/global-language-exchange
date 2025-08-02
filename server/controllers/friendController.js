@@ -3,56 +3,121 @@ const User = require('../models/User');
 const Notification = require('../models/Notification');
 const BlockedUser = require('../models/BlockedUser');
 
-exports.sendRequest = async (req, res) => {
-    const senderId = req.user.id;
-    const { receiverId } = req.body;
-
-    const isBlocked = await BlockedUser.findOne({
-        $or: [
-            { blocker: senderId, blocked: receiverId },
-            { blocker: receiverId, blocked: senderId }
-        ]
-    });
-
-    if (isBlocked) {
-        return res.status(403).json({ message: 'Cannot send request. One of the users has blocked the other.' });
-    }
-
-    if (senderId === receiverId) {
-        return res.status(400).json({ message: "You can't send a request to yourself." });
-    }
+exports.getFriendSuggestions = async (req, res) => {
+    const userId = req.user.id;
 
     try {
-        const existing = await FriendRequest.findOne({
+        const blockedDocs = await BlockedUser.find({
+            $or: [
+                { blocker: userId },
+                { blocked: userId }
+            ]
+        });
+
+        const blockedUserIds = blockedDocs.flatMap(doc => [doc.blocker.toString(), doc.blocked.toString()])
+            .filter(id => id !== userId);
+
+        const accepted = await FriendRequest.find({
+            $or: [
+                { sender: userId },
+                { receiver: userId }
+            ],
+            status: 'accepted'
+        });
+
+        const friendIds = accepted.flatMap(req => [req.sender.toString(), req.receiver.toString()])
+            .filter(id => id !== userId);
+
+        const pending = await FriendRequest.find({
+            $or: [
+                { sender: userId, status: 'pending' },
+                { receiver: userId, status: 'pending' }
+            ]
+        });
+
+        const pendingIds = pending.flatMap(req => [req.sender.toString(), req.receiver.toString()])
+            .filter(id => id !== userId);
+
+        const excludeIds = [...new Set([
+            userId,
+            ...blockedUserIds,
+            ...friendIds,
+            ...pendingIds
+        ])];
+
+        const suggestions = await User.find({
+            _id: { $nin: excludeIds }
+        }).select('name email');
+
+        res.json(suggestions)
+    } catch (error) {
+        console.error('❌ Error in getFriendSuggestions:', error);
+        res.status(500).json({ message: 'Server error while fetching friend suggestions' });
+    }
+}
+
+exports.sendRequest = async (req, res) => {
+    const senderId = req.user.id;
+    const { receiverId, email } = req.body;
+    console.log('📨 sendRequest body:', req.body);
+console.log('🧑 senderId:', senderId);
+
+    try {
+        let targetId = receiverId;
+
+        if (!receiverId && email) {
+            const user = await User.findOne({ email: email.toLowerCase() });
+            if (!user) {
+                return res.status(404).json({ message: 'User not found with that email' });
+            }
+            targetId = user._id;
+        }
+
+        if (!targetId) {
+            return res.status(400).json({ message: 'Missing receiverId or email' });
+        }
+
+        if (senderId === targetId.toString()) {
+            return res.status(400).json({ message: "You can't send a request to yourself." });
+        }
+
+        const existingFriend = await FriendRequest.findOne({
+            $or: [
+                { sender: senderId, receiver: targetId },
+                { sender: targetId, receiver: senderId }
+            ],
+            status: 'accepted'
+        });
+
+        if (existingFriend) {
+            return res.status(400).json({ message: 'Already friends.' });
+        }
+
+        const existingPending = await FriendRequest.findOne({
             sender: senderId,
-            receiver: receiverId,
+            receiver: targetId,
             status: 'pending'
         });
 
-        if (existing) {
+        if (existingPending) {
             return res.status(400).json({ message: 'Friend request already sent.' });
         }
 
-        const newRequest = new FriendRequest({
+        const request = new FriendRequest({
             sender: senderId,
-            receiver: receiverId
+            receiver: targetId,
+            status: 'pending'
         });
 
-        await newRequest.save();
-        // Create a notification for the receiver
-        await Notification.create({
-            type: 'friend_request',
-            sender: senderId,
-            receiver: receiverId,
-            text: `${req.user.name} has sent you a friend request.`
-        });
+        await request.save();
 
-        res.status(201).json({ message: 'Friend request sent successfully.' });
+        res.status(201).json({ message: 'Friend request sent.' });
+
     } catch (error) {
-        console.error('❌ Error in sendRequest:', error);
+        console.error('❌ sendRequest error:', error);
         res.status(500).json({ message: 'Server error' });
     }
-}
+};
 
 exports.acceptRequest = async (req, res) => {
     const receiverId = req.user.id;

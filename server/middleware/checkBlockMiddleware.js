@@ -6,6 +6,7 @@ module.exports = async function (req, res, next) {
 
         const otherUserId =
             req.body.otherUserId ||
+            req.body.receiverId ||
             req.body.receiver ||
             req.body.sender ||
             req.query.otherUserId ||

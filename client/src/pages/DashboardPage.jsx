@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth.jsx';
 import { useNavigate, Link } from 'react-router-dom';
 import PendingRequestsPanel from '../components/PendingRequestPanel.jsx';
 import FriendList from '../components/FriendList.jsx';
+import SendFriendRequest from '../components/SendFriendRequest.jsx';
 
 export default function DashboardPage() {
     const { user, lessons, logout, token } = useAuth();
@@ -34,6 +35,7 @@ export default function DashboardPage() {
                 <div className="grid md:grid-cols-2 gap-6">
                     <PendingRequestsPanel />
                     <FriendList />
+                    <SendFriendRequest />
                 </div>
 
                 <section>

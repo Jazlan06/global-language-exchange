@@ -7,6 +7,7 @@ const checkBlock = require('../middleware/checkBlockMiddleware');
 router.post('/request', auth, checkBlock, friendController.sendRequest);
 router.post('/accept', auth, checkBlock, friendController.acceptRequest);
 router.post('/reject', auth, checkBlock, friendController.rejectRequest);
+router.get('/suggestions', auth, friendController.getFriendSuggestions);
 router.get('/pending', auth, friendController.getPendingRequests);
 router.get('/list', auth, friendController.getFriendList);
 router.get('/mutual/:otherUserId', auth, checkBlock, friendController.getMutualFriends);
