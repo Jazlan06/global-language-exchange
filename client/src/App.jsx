@@ -7,6 +7,7 @@ import LessonsListPage from './pages/LessonListPage.jsx';
 import QuizProgressPage from './pages/QuizProgressPage.jsx';
 import AdminQuizPage from "./pages/AdminQuizPage.jsx";
 import ProfilePage from './pages/ProfilePage.jsx';
+import FriendsPage from './pages/FriendsPage.jsx';
 import { useAuth } from './hooks/useAuth.jsx';
 
 export default function App() {
@@ -28,6 +29,7 @@ export default function App() {
             />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/admin/quizzes" element={<AdminQuizPage />} />
+            <Route path="/friends" element={<FriendsPage />} />
         </Routes>
     );
 }

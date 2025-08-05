@@ -25,15 +25,6 @@ export default function DashboardPage() {
                     </h1>
                 </header>
 
-                <div className="grid md:grid-cols-2 gap-6">
-                    <PendingRequestsPanel />
-                    <FriendList onSelectUser={setSelectedUserId} />
-                    <SendFriendRequest />
-                    {selectedUserId && (
-                        <MutualFriendsPanel targetUserId={selectedUserId} />
-                    )}
-                </div>
-
                 {/* Lessons Section */}
                 <section>
                     <h2 className="text-2xl font-semibold mb-4">Your Lesson Progress</h2>
