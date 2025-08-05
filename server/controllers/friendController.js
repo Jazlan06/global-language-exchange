@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const FriendRequest = require('../models/FriendRequest');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
@@ -60,7 +61,7 @@ exports.sendRequest = async (req, res) => {
     const senderId = req.user.id;
     const { receiverId, email } = req.body;
     console.log('📨 sendRequest body:', req.body);
-console.log('🧑 senderId:', senderId);
+    console.log('🧑 senderId:', senderId);
 
     try {
         let targetId = receiverId;
@@ -218,5 +219,83 @@ exports.getFriendList = async (req, res) => {
 }
 
 exports.getMutualFriends = async (req, res) => {
-    res.status(501).json({ message: "Mutual friends feature not implemented yet." });
+    const userId = req.user.id;
+    const { otherUserId } = req.params;
+    console.log('🔍 [getMutualFriends] userId:', userId, 'otherUserId:', otherUserId);
+
+    try {
+        if (!userId) {
+            return res.status(401).json({ message: 'User not authenticated' }); // 👈 NEW: fail early if no user
+        }
+        if (userId === otherUserId) {
+            return res.status(400).json({ message: "You can't check mutual friends with yourself." });
+        }
+
+        const userFriendDocs = await FriendRequest.find({
+            $or: [
+                { sender: userId, status: 'accepted' },
+                { receiver: userId, status: 'accepted' }
+            ]
+        });
+
+        const userFriendIds = userFriendDocs.map(doc =>
+            doc.sender.toString() === userId ? doc.receiver.toString() : doc.sender.toString()
+        );
+
+        const otherUserFriendDocs = await FriendRequest.find({
+            $or: [
+                { sender: otherUserId, status: 'accepted' },
+                { receiver: otherUserId, status: 'accepted' }
+            ]
+        });
+
+        const otherUserFriendIds = otherUserFriendDocs.map(doc =>
+            doc.sender.toString() === otherUserId ? doc.receiver.toString() : doc.sender.toString()
+        );
+
+        const mutualIds = userFriendIds.filter(id => otherUserFriendIds.includes(id));
+
+        if (mutualIds.length === 0) {
+            return res.json([]);
+        }
+
+        console.log('🧩 userFriendIds:', userFriendIds);
+        console.log('🧩 otherUserFriendIds:', otherUserFriendIds);
+        console.log('🧩 mutualIds (before blocking):', mutualIds);
+
+        const blockDocs = await BlockedUser.find({
+            $or: [
+                { blocker: userId, blocked: { $in: mutualIds } },
+                { blocker: { $in: mutualIds }, blocked: userId },
+                { blocker: otherUserId, blocked: { $in: mutualIds } },
+                { blocker: { $in: mutualIds }, blocked: otherUserId }
+            ]
+        });
+
+        const blockedIds = blockDocs.flatMap(doc => [doc.blocker.toString(), doc.blocked.toString()]);
+        const finalMutualIds = mutualIds.filter(id => !blockedIds.includes(id));
+
+        const validObjectIds = finalMutualIds
+            .filter(mongoose.Types.ObjectId.isValid)
+            .map(id => new mongoose.Types.ObjectId(id));
+
+
+        const mutualFriends = await User.find({
+            _id: { $in: validObjectIds }
+        }).select('name email');
+
+
+        console.log('🧱 blockedIds:', blockedIds);
+        console.log('🎯 finalMutualIds:', finalMutualIds);
+
+
+        res.json(mutualFriends);
+    } catch (error) {
+        console.error('❌ Error in getMutualFriends:', {
+            message: error.message,
+            stack: error.stack,
+        });
+        res.status(500).json({ message: 'Server error while fetching mutual friends' });
+    }
 };
+

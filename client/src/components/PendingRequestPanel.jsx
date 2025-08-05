@@ -31,16 +31,18 @@ const PendingRequestsPanel = () => {
             await axios.post(`/api/friends/${action}`, { senderId }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
+
             setActionStatus(`✅ Request ${action}ed`);
-            setRequests((prev) => prev.filter(r => r.sender._id) !== senderId);
+            setRequests(prev => prev.filter(r => r.sender._id !== senderId));
         } catch (err) {
             console.error(`❌ Failed to ${action} request:`, err);
             setActionStatus(`❌ Failed to ${action}`);
         }
+
         setTimeout(() => setActionStatus(''), 3000);
     };
-    if (loading) return <p className="text-gray-500 italic">Loading pending requests...</p>;
 
+    if (loading) return <p className="text-gray-500 italic">Loading pending requests...</p>;
     if (requests.length === 0) return <p className="text-gray-600">You have no pending requests.</p>;
 
     return (

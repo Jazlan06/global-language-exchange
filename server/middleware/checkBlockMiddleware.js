@@ -5,14 +5,17 @@ module.exports = async function (req, res, next) {
         const userId = req.user.id;
 
         const otherUserId =
-            req.body.otherUserId ||
-            req.body.receiverId ||
-            req.body.receiver ||
-            req.body.sender ||
-            req.query.otherUserId ||
-            req.params.otherUserId;
+            req.body?.otherUserId ||
+            req.body?.receiverId ||
+            req.body?.receiver ||
+            req.body?.sender ||
+            req.body?.senderId ||
+            req.query?.otherUserId ||
+            req.params?.otherUserId;
+
 
         if (!otherUserId) {
+            console.warn('🚫 Block check middleware failed: missing otherUserId');
             return res.status(400).json({ message: 'Other user ID is required for block check' });
         }
 
