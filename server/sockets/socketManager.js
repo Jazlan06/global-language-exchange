@@ -1,10 +1,12 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Chat = require('../models/Chat');
+const Message = require('../models/Message');
 const FriendRequest = require('../models/FriendRequest');
 const GroupMessage = require('../models/GroupMessage');
 
 const onlineUsers = new Map();
+
 const notifyFriendsStatus = async (userId, status, io) => {
     const sent = await FriendRequest.find({ sender: userId, status: 'accepted' });
     const received = await FriendRequest.find({ receiver: userId, status: 'accepted' });
@@ -38,6 +40,7 @@ module.exports = (io) => {
             try {
                 const userId = [...onlineUsers.entries()].find(([_, id]) => id === socket.id)?.[0];
                 if (!userId) return;
+
                 const newMessage = await GroupMessage.create({
                     group: groupId,
                     sender: userId,
@@ -53,43 +56,81 @@ module.exports = (io) => {
             } catch (err) {
                 console.error('❌ Error sending group message:', err.message);
             }
-        })
+        });
 
         socket.on('join', async (token) => {
             try {
                 const decoded = jwt.verify(token, process.env.JWT_SECRET);
                 const userId = decoded.id;
-
+                socket.user = { id: userId };
                 onlineUsers.set(userId, socket.id);
                 await User.findByIdAndUpdate(userId, { isOnline: true, socketId: socket.id });
 
                 console.log(`✅ User ${userId} joined with socket ID: ${socket.id}`);
-
                 await notifyFriendsStatus(userId, 'online', io);
-
             } catch (error) {
                 console.error('❌ Error joining socket:', error.message);
                 socket.emit('error', { message: 'Authentication failed' });
             }
         });
 
-        socket.on('send_message', ({ receipientId, message }) => {
-            const receipentSocket = onlineUsers.get(receipentId);
-            if (receipentSocket) {
-                io.to(receipentSocket).emit('receive_message', {
-                    from: message.sender,
-                    text: message.text,
-                    originalText: message.text,
-                    chatId: message.chatId,
-                    createdAt: new Date()
+        socket.on('send_message', async ({ chatId, text }) => {
+            try {
+                const senderId = socket.user?.id;
+                if (!senderId) {
+                    console.warn('⚠️ senderId missing in send_message');
+                    return;
+                }
+
+                const chat = await Chat.findById(chatId);
+                if (!chat) return;
+
+                const recipientId = chat.participants.find(
+                    id => id.toString() !== senderId
+                );
+                const recipient = await User.findById(recipientId);
+
+                const message = await Message.create({
+                    chat: chatId,
+                    sender: senderId,
+                    text,
                 });
+
+                await message.populate('sender', 'name profilePic');
+
+                // Emit to sender (confirmation)
+                socket.emit('receive_message', {
+                    chatId,
+                    text: message.text,
+                    createdAt: message.createdAt,
+                    from: {
+                        _id: senderId,
+                        name: message.sender.name,
+                        profilePic: message.sender.profilePic,
+                    }
+                });
+
+                if (recipient?.socketId) {
+                    io.to(recipient.socketId).emit('receive_message', {
+                        chatId,
+                        text: message.text,
+                        createdAt: message.createdAt,
+                        from: {
+                            _id: senderId,
+                            name: message.sender.name,
+                            profilePic: message.sender.profilePic,
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error('Error sending socket message:', err);
             }
         });
 
         socket.on('webrtc_offer', ({ to, offer }) => {
-            const receipentSocket = onlineUsers.get(to);
-            if (receipentSocket) {
-                io.to(receipentSocket).emit('webrtc_offer', {
+            const recipientSocket = onlineUsers.get(to);
+            if (recipientSocket) {
+                io.to(recipientSocket).emit('webrtc_offer', {
                     from: socket.id,
                     offer
                 });
@@ -97,9 +138,9 @@ module.exports = (io) => {
         });
 
         socket.on('webrtc_answer', ({ to, answer }) => {
-            const receipentSocket = onlineUsers.get(to);
-            if (receipentSocket) {
-                io.to(receipentSocket).emit('webrtc_answer', {
+            const recipientSocket = onlineUsers.get(to);
+            if (recipientSocket) {
+                io.to(recipientSocket).emit('webrtc_answer', {
                     from: socket.id,
                     answer
                 });
@@ -107,9 +148,9 @@ module.exports = (io) => {
         });
 
         socket.on('webrtc_ice_candidate', ({ to, candidate }) => {
-            const receipentSocket = onlineUsers.get(to);
-            if (receipentSocket) {
-                io.to(receipentSocket).emit('webrtc_ice_candidate', {
+            const recipientSocket = onlineUsers.get(to);
+            if (recipientSocket) {
+                io.to(recipientSocket).emit('webrtc_ice_candidate', {
                     from: socket.id,
                     candidate
                 });
@@ -129,6 +170,5 @@ module.exports = (io) => {
         });
     });
 };
-
 
 module.exports.onlineUsers = onlineUsers;

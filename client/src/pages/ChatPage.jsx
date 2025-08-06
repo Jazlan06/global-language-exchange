@@ -7,6 +7,8 @@ import {
     sendMessage,
     createOrGetChat
 } from '../utils/api';
+import socket from '../utils/socket';
+import { v4 as uuidv4 } from 'uuid'
 
 const getCurrentUserId = () => {
     const token = localStorage.getItem('token');
@@ -29,7 +31,41 @@ const ChatPage = () => {
     const [sidebarVisible, setSidebarVisible] = useState(false);
     const currentUserId = getCurrentUserId();
 
-    // fetch chats
+    useEffect(() => {
+        socket.connect();
+        socket.emit('join', localStorage.getItem('token'));
+
+        return () => {
+            socket.disconnect();
+        };
+    }, []);
+
+    useEffect(() => {
+        socket.on('receive_message', (msg) => {
+            if (msg.chatId === selectedChat?._id) {
+                const normalizedMsg = {
+                    _id: uuidv4(),
+                    chat: msg.chatId,
+                    text: msg.text,
+                    createdAt: msg.createdAt,
+                    sender: msg.from,
+                };
+                setMessages(prev => [...prev, normalizedMsg]);
+            } else {
+                console.log('📨 New message in another chat');
+                // Optionally trigger a toast notification
+            }
+        });
+
+
+        return () => {
+            socket.off('receive_message');
+        };
+    }, [selectedChat]);
+
+
+
+
     useEffect(() => {
         getChats().then(data => data && setChats(data));
 
@@ -139,7 +175,7 @@ const ChatPage = () => {
                             ? <p className="text-gray-500">No messages yet.</p>
                             : messages.map(msg => (
                                 <div
-                                    key={msg._id}
+                                    key={msg._id || uuidv4()}
                                     className={`max-w-[70%] p-3 rounded-lg ${msg.sender && msg.sender._id === currentUserId
                                         ? 'bg-blue-600 text-white self-end ml-auto'
                                         : 'bg-white border text-gray-800'
@@ -176,14 +212,15 @@ const ChatPage = () => {
 
     function handleSendMessage() {
         if (!newMessage.trim()) return;
-        sendMessage({ chatId: selectedChat._id, text: newMessage.trim() })
-            .then(sent => {
-                if (sent) {
-                    setMessages(prev => [...prev, sent]);
-                    setNewMessage('');
-                }
-            });
+
+        socket.emit('send_message', {
+            chatId: selectedChat._id,
+            text: newMessage.trim(),
+        });
+
+        setNewMessage('');
     }
+
 };
 
 export default ChatPage;
