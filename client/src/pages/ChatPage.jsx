@@ -30,6 +30,7 @@ const ChatPage = () => {
     const [userList, setUserList] = useState([]);
     const [sidebarVisible, setSidebarVisible] = useState(false);
     const [isTyping, setIsTyping] = useState(false);
+    const [unreadCounts, setUnreadCounts] = useState({});
     const currentUserId = getCurrentUserId();
     const typingTimeoutRef = useRef(null);
     const typingEmitTimeoutRef = useRef(null);
@@ -44,20 +45,17 @@ const ChatPage = () => {
         };
     }, []);
 
-    // Handle input typing
     useEffect(() => {
         if (!selectedChat || !newMessage) return;
 
         const recipient = selectedChat.participants.find(p => p._id !== currentUserId);
         if (!recipient) return;
 
-        // Emit user_typing
         socket.emit('user_typing', {
             chatId: selectedChat._id,
             to: recipient._id,
         });
 
-        // Debounce stop typing emit
         if (typingEmitTimeoutRef.current) clearTimeout(typingEmitTimeoutRef.current);
         typingEmitTimeoutRef.current = setTimeout(() => {
             socket.emit('user_typing_stop', {
@@ -67,17 +65,15 @@ const ChatPage = () => {
         }, 1000);
     }, [newMessage]);
 
-    // Listen to typing events from the other user
     useEffect(() => {
         const handleTyping = ({ chatId, from }) => {
             if (chatId === selectedChat?._id && from !== currentUserId) {
                 setIsTyping(true);
 
-                // Reset bubble timeout each time a "typing" is received
                 if (typingDisplayTimeoutRef.current) clearTimeout(typingDisplayTimeoutRef.current);
                 typingDisplayTimeoutRef.current = setTimeout(() => {
                     setIsTyping(false);
-                }, 2000); // bubble stays 2s after last typing event
+                }, 2000);
             }
         };
 
@@ -108,7 +104,10 @@ const ChatPage = () => {
                 };
                 setMessages(prev => [...prev, normalizedMsg]);
             } else {
-                console.log('📨 New message in another chat');
+                setUnreadCounts(prev => ({
+                    ...prev,
+                    [msg.chatId]: (prev[msg.chatId] || 0) + 1
+                }));
             }
         });
 
@@ -139,7 +138,18 @@ const ChatPage = () => {
     const handleStartChat = (userId) => {
         console.log('Starting chat with userId:', userId);
         createOrGetChat(userId).then(chat => {
-            if (chat) getChats().then(c => { setChats(c); setSelectedChat(chat); setSidebarVisible(false); });
+            if (chat) {
+                getChats().then(c => {
+                    setChats(c);
+                    setSelectedChat(chat);
+                    setSidebarVisible(false);
+                    setUnreadCounts(prev => {
+                        const newCounts = { ...prev };
+                        delete newCounts[chat._id];
+                        return newCounts;
+                    });
+                });
+            }
         });
     };
 
@@ -192,13 +202,30 @@ const ChatPage = () => {
                     {chats.map(chat => (
                         <li
                             key={chat._id}
-                            onClick={() => { setSelectedChat(chat); setSidebarVisible(false); }}
-                            className={`cursor-pointer p-2 rounded hover:bg-blue-100 ${selectedChat?._id === chat._id ? 'bg-blue-200 font-semibold' : ''
-                                }`}
+                            onClick={() => {
+                                setSelectedChat(chat);
+                                setSidebarVisible(false);
+                                setUnreadCounts(prev => {
+                                    const newCounts = { ...prev };
+                                    delete newCounts[chat._id];
+                                    return newCounts;
+                                });
+                            }}
+                            className={`cursor-pointer p-2 rounded hover:bg-blue-100 ${
+                                selectedChat?._id === chat._id ? 'bg-blue-200 font-semibold' : ''
+                            } flex justify-between items-center`}
                         >
-                            Chat with {chat.participants
-                                ?.filter(u => u._id !== currentUserId)
-                                .map(u => u.name).join(', ') || 'User'}
+                            <span>
+                                Chat with {chat.participants
+                                    ?.filter(u => u._id !== currentUserId)
+                                    .map(u => u.name).join(', ') || 'User'}
+                            </span>
+
+                            {unreadCounts[chat._id] > 0 && (
+                                <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-500 text-white">
+                                    {unreadCounts[chat._id]}
+                                </span>
+                            )}
                         </li>
                     ))}
                 </ul>
@@ -283,6 +310,3 @@ const ChatPage = () => {
 };
 
 export default ChatPage;
-
-//
-//

@@ -177,6 +177,7 @@ module.exports = (io) => {
             }
         });
 
+
         socket.on('disconnect', async () => {
             console.log('🔌 User disconnected:', socket.id);
 
