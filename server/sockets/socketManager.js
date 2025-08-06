@@ -157,6 +157,26 @@ module.exports = (io) => {
             }
         });
 
+        socket.on('user_typing', ({ chatId, to }) => {
+            const recipientSocketId = onlineUsers.get(to);
+            if (recipientSocketId) {
+                io.to(recipientSocketId).emit('user_typing', {
+                    chatId,
+                    from: socket.user?.id,
+                });
+            }
+        });
+
+        socket.on('user_typing_stop', ({ chatId, to }) => {
+            const recipientSocketId = onlineUsers.get(to);
+            if (recipientSocketId) {
+                io.to(recipientSocketId).emit('user_typing_stop', {
+                    chatId,
+                    from: socket.user?.id,
+                });
+            }
+        });
+
         socket.on('disconnect', async () => {
             console.log('🔌 User disconnected:', socket.id);
 

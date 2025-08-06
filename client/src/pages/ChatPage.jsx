@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSwipeable } from 'react-swipeable';
 import { jwtDecode } from 'jwt-decode';
 import {
@@ -8,7 +8,7 @@ import {
     createOrGetChat
 } from '../utils/api';
 import socket from '../utils/socket';
-import { v4 as uuidv4 } from 'uuid'
+import { v4 as uuidv4 } from 'uuid';
 
 const getCurrentUserId = () => {
     const token = localStorage.getItem('token');
@@ -29,7 +29,11 @@ const ChatPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [userList, setUserList] = useState([]);
     const [sidebarVisible, setSidebarVisible] = useState(false);
+    const [isTyping, setIsTyping] = useState(false);
     const currentUserId = getCurrentUserId();
+    const typingTimeoutRef = useRef(null);
+    const typingEmitTimeoutRef = useRef(null);
+    const typingDisplayTimeoutRef = useRef(null);
 
     useEffect(() => {
         socket.connect();
@@ -39,6 +43,58 @@ const ChatPage = () => {
             socket.disconnect();
         };
     }, []);
+
+    // Handle input typing
+    useEffect(() => {
+        if (!selectedChat || !newMessage) return;
+
+        const recipient = selectedChat.participants.find(p => p._id !== currentUserId);
+        if (!recipient) return;
+
+        // Emit user_typing
+        socket.emit('user_typing', {
+            chatId: selectedChat._id,
+            to: recipient._id,
+        });
+
+        // Debounce stop typing emit
+        if (typingEmitTimeoutRef.current) clearTimeout(typingEmitTimeoutRef.current);
+        typingEmitTimeoutRef.current = setTimeout(() => {
+            socket.emit('user_typing_stop', {
+                chatId: selectedChat._id,
+                to: recipient._id,
+            });
+        }, 1000);
+    }, [newMessage]);
+
+    // Listen to typing events from the other user
+    useEffect(() => {
+        const handleTyping = ({ chatId, from }) => {
+            if (chatId === selectedChat?._id && from !== currentUserId) {
+                setIsTyping(true);
+
+                // Reset bubble timeout each time a "typing" is received
+                if (typingDisplayTimeoutRef.current) clearTimeout(typingDisplayTimeoutRef.current);
+                typingDisplayTimeoutRef.current = setTimeout(() => {
+                    setIsTyping(false);
+                }, 2000); // bubble stays 2s after last typing event
+            }
+        };
+
+        const handleStopTyping = ({ chatId, from }) => {
+            if (chatId === selectedChat?._id && from !== currentUserId) {
+                setIsTyping(false);
+            }
+        };
+
+        socket.on('user_typing', handleTyping);
+        socket.on('user_typing_stop', handleStopTyping);
+
+        return () => {
+            socket.off('user_typing', handleTyping);
+            socket.off('user_typing_stop', handleStopTyping);
+        };
+    }, [selectedChat]);
 
     useEffect(() => {
         socket.on('receive_message', (msg) => {
@@ -53,18 +109,13 @@ const ChatPage = () => {
                 setMessages(prev => [...prev, normalizedMsg]);
             } else {
                 console.log('📨 New message in another chat');
-                // Optionally trigger a toast notification
             }
         });
-
 
         return () => {
             socket.off('receive_message');
         };
     }, [selectedChat]);
-
-
-
 
     useEffect(() => {
         getChats().then(data => data && setChats(data));
@@ -79,7 +130,6 @@ const ChatPage = () => {
             })
             .catch(() => { });
     }, []);
-
 
     useEffect(() => {
         if (!selectedChat) return setMessages([]);
@@ -111,8 +161,8 @@ const ChatPage = () => {
         <div className="flex h-screen w-screen bg-gray-100" {...swipeHandlers}>
             {/* Sidebar */}
             <div className={`fixed inset-y-0 left-0 z-30 w-64 bg-white shadow-md transform transition-transform duration-300
-        ${sidebarVisible ? 'translate-x-0' : '-translate-x-full'}
-        md:translate-x-0 md:static`}>
+                ${sidebarVisible ? 'translate-x-0' : '-translate-x-full'}
+                md:translate-x-0 md:static`}>
                 <div className="p-4 border-b">
                     <h2 className="text-lg font-semibold">Your Chats</h2>
                 </div>
@@ -184,9 +234,15 @@ const ChatPage = () => {
                                     <div className="font-semibold">{msg.sender?.name || 'Unknown'}</div>
                                     <div>{msg.text}</div>
                                 </div>
-                            ))
-                    }
+                            ))}
                 </div>
+                {isTyping && (
+                    <div className="flex gap-1 items-center p-2 bg-gray-200 rounded-full w-fit">
+                        <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce [animation-delay:0s]" />
+                        <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce [animation-delay:0.15s]" />
+                        <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce [animation-delay:0.3s]" />
+                    </div>
+                )}
 
                 {selectedChat && (
                     <div className="p-4 border-t bg-white flex gap-2">
@@ -219,8 +275,14 @@ const ChatPage = () => {
         });
 
         setNewMessage('');
+        socket.emit('user_typing_stop', {
+            chatId: selectedChat._id,
+            to: selectedChat.participants.find(p => p._id !== currentUserId)?._id,
+        });
     }
-
 };
 
 export default ChatPage;
+
+//
+//
