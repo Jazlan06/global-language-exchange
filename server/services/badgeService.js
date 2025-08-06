@@ -14,7 +14,7 @@ async function awardBadge(userId, badgeKey) {
     return badgeKey;
 }
 
-exports.checkBadgesForUser = async (req, res) => {
+exports.checkBadgesForUser = async (user) => {
     const awarded = [];
 
     if (user.streak >= 7) {
@@ -41,6 +41,10 @@ exports.checkBadgesForUser = async (req, res) => {
     })
     if (friends >= 8) {
         awarded.push(await awardBadge(user._id, badges.FRIEND_5.key));
+    }
+
+    if (awarded.length > 0) {
+        console.log(`Awarded badges to ${user.name || user._id}:`, awarded);
     }
 
     return awarded.filter(Boolean);

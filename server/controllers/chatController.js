@@ -27,6 +27,7 @@ exports.createOrGetChat = async (req, res) => {
         if (!chat) {
             chat = new Chat({ participants: [userId, recipientId] });
             await chat.save();
+            chat = await Chat.findById(chat._id).populate('participants', 'name email');
         }
 
         res.json(chat);
@@ -37,11 +38,10 @@ exports.createOrGetChat = async (req, res) => {
 };
 
 exports.sendMessage = async (req, res) => {
-    const { chatId, text, otherUserId } = req.body;
-    console.log('sendMessage received:', { chatId, otherUserId, text });
-    const sender = req.user.id;
+    const { chatId, text } = req.body;
+    const sender = req.user._id.toString(); 
+
     if (!mongoose.Types.ObjectId.isValid(chatId)) {
-        console.log('❌ Invalid chatId');
         return res.status(400).json({ message: 'Invalid chatId format' });
     }
 
@@ -72,20 +72,22 @@ exports.sendMessage = async (req, res) => {
         chat.updatedAt = Date.now();
         await chat.save();
         await badgeService.checkBadgesForUser(req.user);
-        res.json(message);
+
+        const populatedMessage = await message.populate('sender', 'name email');
+
+        res.json(populatedMessage);
     } catch (err) {
-        console.error('❌ Error in sendMessage:', err);
+        console.error('Error in sendMessage:', err);
         res.status(500).json({ message: 'Server error' });
     }
 };
 
 exports.getChats = async (req, res) => {
-    const userId = req.user.id;
-
     try {
-        const chats = await Chat.find({
-            participants: userId
-        }).populate('participants', 'name email').sort({ updatedAt: -1 });
+
+        const chats = await Chat.find({ participants: req.user._id })
+            .populate('participants', 'name email')
+            .sort({ updatedAt: -1 });
 
         res.json(chats);
     } catch (err) {
@@ -97,18 +99,22 @@ exports.getChats = async (req, res) => {
 exports.getMessages = async (req, res) => {
     const chatId = req.params.chatId;
 
+    if (!mongoose.Types.ObjectId.isValid(chatId)) {
+        return res.status(400).json({ message: 'Invalid chatId format' });
+    }
+
     try {
         const messages = await Message.find({ chat: chatId })
             .populate('sender', 'name email')
             .sort({ createdAt: 1 });
 
-        if (!messages) {
-            return res.status(404).json({ message: 'No messages found' });
+        if (!messages || messages.length === 0) {
+            return res.json(messages || []);
         }
 
         res.json(messages);
     } catch (err) {
-        console.error('❌ Error in getMessages:', err);
+        console.error('Error in getMessages:', err);
         res.status(500).json({ message: 'Server error' });
     }
 };

@@ -19,6 +19,7 @@ router.get('/friends/online', auth, userController.getOnlineFriends);
 router.get('/online', auth, userController.getAllOnlineUsers);
 router.get('/me/badges', auth, userController.getMyBadges); 
 router.put('/me/privacy', auth, userController.updatePrivacySettings);
+router.get('/list', auth, userController.getUserList);
 
 
 

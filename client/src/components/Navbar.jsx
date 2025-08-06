@@ -44,8 +44,8 @@ export default function Navbar() {
                         <>
                             <Link to="/dashboard" className="text-gray-700 hover:text-blue-600 font-medium">Dashboard</Link>
                             <Link to="/profile" className="text-gray-700 hover:text-blue-600 font-medium">Profile</Link>
-                            <Link to="/progress" className="text-gray-700 hover:text-blue-600 font-medium">Progress</Link>
-                             <Link to="/friends" className="text-gray-700 hover:text-blue-600 font-medium">Friends</Link>
+                            <Link to="/quizzes/progress" className="text-gray-700 hover:text-blue-600 font-medium">Progress</Link>
+                            <Link to="/friends" className="text-gray-700 hover:text-blue-600 font-medium">Friends</Link>
                             <button
                                 onClick={logout}
                                 className="bg-red-500 text-white px-4 py-1.5 rounded hover:bg-red-600"
@@ -70,7 +70,7 @@ export default function Navbar() {
                             <Link to="/dashboard" onClick={closeMenu} className="block text-gray-700 hover:text-blue-600">Dashboard</Link>
                             <Link to="/profile" onClick={closeMenu} className="block text-gray-700 hover:text-blue-600">Profile</Link>
                             <Link to="/quizzes/progress" onClick={closeMenu} className="block text-gray-700 hover:text-blue-600">Progress</Link>
-                              <Link to="/friends" onClick={closeMenu} className="block text-gray-700 hover:text-blue-600">Friends</Link>
+                            <Link to="/friends" onClick={closeMenu} className="block text-gray-700 hover:text-blue-600">Friends</Link>
                             <button
                                 onClick={() => {
                                     closeMenu();

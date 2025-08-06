@@ -6,6 +6,7 @@ import SendFriendRequest from '../components/SendFriendRequest.jsx';
 import MutualFriendsPanel from '../components/MutualFriendPanel.jsx';
 
 const FriendsPage = () => {
+    const [currentChat, setCurrentChat] = useState(null);
     const [pendingRequests, setPendingRequests] = useState([]);
     const [friendList, setFriendList] = useState([]);
     const [suggestions, setSuggestions] = useState([]);

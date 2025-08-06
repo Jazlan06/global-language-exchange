@@ -143,3 +143,12 @@ exports.getAllOnlineUsers = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+
+exports.getUserList = async (req, res) => {
+    try {
+        const users = await User.find({}).select({ _id: 1, name: 1 }).lean();
+        res.json(users);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+};
