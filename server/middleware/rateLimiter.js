@@ -49,7 +49,7 @@ const xpLimiter = rateLimit({
 
 const loginLimiter = rateLimit({
     windowMs: 10 * 60 * 1000,
-    max: 5,
+    max: 500,
     message: 'Too many login attempts. Try again later.',
 });
 

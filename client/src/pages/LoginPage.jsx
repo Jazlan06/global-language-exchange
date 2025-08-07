@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { login } from '../services/authService';
 import { useAuth } from '../hooks/useAuth.jsx';
-
+import { subscribeUserToPush } from '../utils/pushManager';
 
 export default function LoginPage() {
     const { login: contextLogin } = useAuth();
@@ -22,7 +22,12 @@ export default function LoginPage() {
             const data = await login(formData.email, formData.password);
             console.log('Login success:', data);
             contextLogin(data);
-            window.location.href = '/dashboard';
+            await subscribeUserToPush();
+
+            console.log('✅ Finished subscribing to push. Redirecting in 3s...');
+            setTimeout(() => {
+                window.location.href = '/dashboard';
+            }, 20000);
         } catch (err) {
             setError(err?.response?.data?.message || 'Login failed');
         } finally {

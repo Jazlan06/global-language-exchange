@@ -19,7 +19,7 @@ const io = require('socket.io')(server, {
     }
 });
 const corsOptions = {
-    origin: 'http://localhost:5173',
+    origin: 'https://localhost:5173',
     credentials: true,
 };
 connectDB();
@@ -50,6 +50,7 @@ app.use('/api/group-messages', require('./routes/groupMessageRoutes'));
 app.use('/api/lessons', require('./routes/lessonRoutes'));
 app.use('/api/quizzes', require('./routes/quizRoutes'));
 app.use('/api/lesson/progress', require('./routes/lessonProgressRoutes'));
+app.use('/api/push', require('./routes/pushRoutes'));
 
 socketManager(io);
 

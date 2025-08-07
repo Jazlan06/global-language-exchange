@@ -31,6 +31,7 @@ const ChatPage = () => {
     const [sidebarVisible, setSidebarVisible] = useState(false);
     const [isTyping, setIsTyping] = useState(false);
     const [unreadCounts, setUnreadCounts] = useState({});
+    const [isTabActive, setIsTabActive] = useState(true);
     const currentUserId = getCurrentUserId();
     const typingTimeoutRef = useRef(null);
     const typingEmitTimeoutRef = useRef(null);
@@ -44,6 +45,24 @@ const ChatPage = () => {
             socket.disconnect();
         };
     }, []);
+
+    useEffect(() => {
+        if ("Notification" in window && Notification.permission === "default") {
+            Notification.requestPermission().then((perm) => {
+                console.log("Notification permission:", perm);
+            });
+        }
+    }, []);
+
+    useEffect(() => {
+        const handleVisibility = () => setIsTabActive(!document.hidden);
+
+        document.addEventListener('visibilitychange', handleVisibility);
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibility);
+        };
+    }, []);
+
 
     useEffect(() => {
         if (!selectedChat || !newMessage) return;
@@ -92,29 +111,39 @@ const ChatPage = () => {
         };
     }, [selectedChat]);
 
-    useEffect(() => {
-        socket.on('receive_message', (msg) => {
-            if (msg.chatId === selectedChat?._id) {
-                const normalizedMsg = {
-                    _id: uuidv4(),
-                    chat: msg.chatId,
-                    text: msg.text,
-                    createdAt: msg.createdAt,
-                    sender: msg.from,
-                };
-                setMessages(prev => [...prev, normalizedMsg]);
-            } else {
-                setUnreadCounts(prev => ({
-                    ...prev,
-                    [msg.chatId]: (prev[msg.chatId] || 0) + 1
-                }));
-            }
-        });
-
-        return () => {
-            socket.off('receive_message');
+useEffect(() => {
+    socket.on('receive_message', (msg) => {
+        const normalizedMsg = {
+            _id: uuidv4(),
+            chat: msg.chatId,
+            text: msg.text,
+            createdAt: msg.createdAt,
+            sender: msg.from,
         };
-    }, [selectedChat]);
+
+        if (msg.chatId === selectedChat?._id) {
+            setMessages(prev => [...prev, normalizedMsg]);
+        } else {
+            setUnreadCounts(prev => ({
+                ...prev,
+                [msg.chatId]: (prev[msg.chatId] || 0) + 1
+            }));
+
+            if (!isTabActive && "Notification" in window && Notification.permission === "granted") {
+                const senderName = msg.from?.name || 'New Message';
+                new Notification(senderName, {
+                    body: msg.text,
+                    icon: '/chat-icon.png' 
+                });
+            }
+        }
+    });
+
+    return () => {
+        socket.off('receive_message');
+    };
+}, [selectedChat, isTabActive]);
+
 
     useEffect(() => {
         getChats().then(data => data && setChats(data));
@@ -211,9 +240,8 @@ const ChatPage = () => {
                                     return newCounts;
                                 });
                             }}
-                            className={`cursor-pointer p-2 rounded hover:bg-blue-100 ${
-                                selectedChat?._id === chat._id ? 'bg-blue-200 font-semibold' : ''
-                            } flex justify-between items-center`}
+                            className={`cursor-pointer p-2 rounded hover:bg-blue-100 ${selectedChat?._id === chat._id ? 'bg-blue-200 font-semibold' : ''
+                                } flex justify-between items-center`}
                         >
                             <span>
                                 Chat with {chat.participants

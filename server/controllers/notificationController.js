@@ -1,6 +1,7 @@
 const Notification = require('../models/Notification');
 const User = require('../models/User');
-const { onlineUsers } = require('../sockets/socketManager'); 
+const { onlineUsers } = require('../sockets/socketManager');
+const { sendPushNotification } = require('./pushController');
 
 exports.sendNotification = async (req, res) => {
     const { receiverId, type, message } = req.body;
@@ -18,6 +19,43 @@ exports.sendNotification = async (req, res) => {
         if (socketId) {
             io.to(socketId).emit('notification', notification);
         }
+
+        let title = 'New Notification';
+        let url = '/notifications';
+
+        switch (type) {
+            case 'message':
+                title = 'New Message';
+                url = '/messages';
+                break;
+            case 'friend_request':
+                title = 'New Friend Request';
+                url = '/friends';
+                break;
+            case 'request_accepted':
+                title = 'Friend Request Accepted';
+                url = '/friends';
+                break;
+            case 'xp_milestone':
+                title = 'XP Milestone Reached!';
+                url = '/xp';
+                break;
+            case 'streak':
+                title = 'Your Streak Is On Fire!';
+                url = '/dashboard';
+                break;
+            case 'announcement':
+                title = 'Announcement';
+                url = '/announcements';
+                break;
+        }
+
+        await sendPushNotification(receiverId, {
+            title,
+            body: message,
+            icon: '/logo.png', 
+            data: { url }
+        });
 
         res.status(201).json(notification);
     } catch (err) {
@@ -61,8 +99,8 @@ exports.markAsRead = async (req, res) => {
 
 exports.deleteNotification = async (req, res) => {
     try {
-        const delted = await Notification.findByIdAndDelete(req.params.id);
-        if (!delted) {
+        const deleted = await Notification.findByIdAndDelete(req.params.id);
+        if (!deleted) {
             return res.status(404).json({ message: 'Notification not found.' });
         }
         res.json({ message: 'Notification deleted successfully.' });
@@ -92,9 +130,9 @@ exports.broadcastAnnouncement = async (req, res) => {
         const insertedNotifications = await Notification.insertMany(notifications);
 
         const io = req.app.get('io');
-        insertedNotifications.forEach(notification =>{
+        insertedNotifications.forEach(notification => {
             const socketId = onlineUsers.get(notification.receiver.toString());
-            if(socketId){
+            if (socketId) {
                 io.to(socketId).emit('notification', notification);
             }
         })

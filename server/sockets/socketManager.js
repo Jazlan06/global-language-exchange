@@ -4,6 +4,8 @@ const Chat = require('../models/Chat');
 const Message = require('../models/Message');
 const FriendRequest = require('../models/FriendRequest');
 const GroupMessage = require('../models/GroupMessage');
+const Subscription = require('../models/Subscription');
+const { sendPushNotification } = require('../controllers/pushController');
 
 const onlineUsers = new Map();
 
@@ -121,7 +123,24 @@ module.exports = (io) => {
                             profilePic: message.sender.profilePic,
                         }
                     });
+                } else {
+                    try {
+                        const pushSub = await Subscription.findOne({ user: recipient._id });
+                        if (pushSub) {
+                            await sendPushNotification(recipient._id.toString(), {
+                                title: message.sender.name || 'New Message',
+                                body: message.text,
+                                icon: '/chat-icon.png',
+                                data: {
+                                    url: '/chat'
+                                }
+                            });
+                        }
+                    } catch (err) {
+                        console.error('❌ Error sending push notification:', err.message);
+                    }
                 }
+
             } catch (err) {
                 console.error('Error sending socket message:', err);
             }

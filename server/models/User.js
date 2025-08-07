@@ -64,10 +64,6 @@ const userSchema = new mongoose.Schema({
         type: [String],
         default: []
     },
-    xp: {
-        type: Number,
-        default: 0
-    },
     theme: {
         type: String,
         enum: ['light', 'dark', 'system'],
@@ -79,14 +75,14 @@ const userSchema = new mongoose.Schema({
         sms: { type: Boolean, default: false }
     },
     privacy: {
-    showEmail: { type: Boolean, default: true },
-    showOnlineStatus: { type: Boolean, default: true },
-    profileVisibleTo: {
-        type: String,
-        enum: ['everyone', 'friends', 'only_me'],
-        default: 'everyone'
+        showEmail: { type: Boolean, default: true },
+        showOnlineStatus: { type: Boolean, default: true },
+        profileVisibleTo: {
+            type: String,
+            enum: ['everyone', 'friends', 'only_me'],
+            default: 'everyone'
+        }
     }
-}
 });
 
 module.exports = mongoose.model('User', userSchema);
