@@ -9,6 +9,8 @@ import AdminQuizPage from "./pages/AdminQuizPage.jsx";
 import ProfilePage from './pages/ProfilePage.jsx';
 import FriendsPage from './pages/FriendsPage.jsx';
 import ChatPage from './pages/ChatPage.jsx';
+import GroupListPage from './pages/GroupListPage.jsx';
+import GroupDetailsPage from './pages/GroupDetailsPage.jsx';
 import { useAuth } from './hooks/useAuth.jsx';
 
 export default function App() {
@@ -32,6 +34,8 @@ export default function App() {
             <Route path="/admin/quizzes" element={<AdminQuizPage />} />
             <Route path="/friends" element={<FriendsPage />} />
             <Route path="/chat" element={<ChatPage />} />
+            <Route path="/groups" element={token ? <GroupListPage /> : <Navigate to="/login" />} />
+            <Route path="/groups/:id" element={token ? <GroupDetailsPage /> : <Navigate to="/login" />} />
         </Routes>
     );
 }

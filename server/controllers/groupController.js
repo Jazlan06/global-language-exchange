@@ -1,29 +1,38 @@
 const Group = require('../models/Group');
+const GroupMessage = require('../models/GroupMessage');
 
 exports.createGroup = async (req, res) => {
     try {
-        const { name, description, topic, languageLevel } = req.body;
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ message: 'Unauthorized: user info missing' });
+        }
+
+        const { name, description, topic, languageLevel, participants = [] } = req.body;
+
+        const uniqueMembers = [...new Set([req.user.id, ...participants])];
 
         const group = new Group({
             name,
             description,
             topic,
             languageLevel,
-            members: [req.user.id],
+            members: uniqueMembers,
             admins: [req.user.id],
-        })
+        });
+
         await group.save();
+        await group.populate('members', 'name email');
         res.status(201).json({ message: 'Group created', group });
     } catch (err) {
         console.error('Error creating group:', err);
         res.status(500).json({ message: 'Server error' });
     }
-}
+};
 
 exports.listGroups = async (req, res) => {
     try {
         const groups = await Group.find().select('name description topic languageLevel members admins');
-        res.json(groups);
+        res.json({ groups });
     } catch (err) {
         console.error('Error fetching group:', err);
         res.status(500).json({ message: 'Server error' });
@@ -32,14 +41,25 @@ exports.listGroups = async (req, res) => {
 
 exports.getGroup = async (req, res) => {
     try {
-        const group = await Group.findById(req.params.groupId).populate('members', 'username').populate('admins', 'username');
+        const group = await Group.findById(req.params.groupId)
+            .populate('members', 'name')
+            .populate('admins', 'name');
+
         if (!group) return res.status(404).json({ message: 'Group Not Found' });
-        res.json(group);
+
+        const messages = await GroupMessage.find({ group: req.params.groupId })
+            .populate('sender', 'username')
+            .sort({ createdAt: 1 });
+
+        res.json({
+            group,
+            messages
+        });
     } catch (err) {
         console.error('Error fetching group:', err);
         res.status(500).json({ message: 'Server error' });
     }
-}
+};
 
 exports.joinGroup = async (req, res) => {
     try {
@@ -61,23 +81,27 @@ exports.joinGroup = async (req, res) => {
 
 exports.leaveGroup = async (req, res) => {
     try {
+        const userId = req.body.userId || req.user.id;
+
         const group = await Group.findById(req.params.groupId);
         if (!group) return res.status(404).json({ message: 'Group not found' });
 
-        if (!group.members.includes(req.user.id)) {
-            return res.status(400).json({ message: 'Not a member' });
+        const isSelf = req.user.id === userId;
+        const isAdmin = group.admins.includes(req.user.id);
+        if (!isSelf && !isAdmin) {
+            return res.status(403).json({ message: 'Not authorized to remove others' });
         }
 
-        group.members = group.members.filter(memberId => memberId.toString() !== req.user.id);
-        group.admins = group.admins.filter(adminId => adminId.toString() !== req.user.id);
+        group.members = group.members.filter(id => id.toString() !== userId);
+        group.admins = group.admins.filter(id => id.toString() !== userId);
 
         await group.save();
-        res.json({ message: 'Left group', groupId: group._id });
+        res.json({ message: 'User removed from group', groupId: group._id });
     } catch (err) {
-        console.error('Error leaving group:', err);
+        console.error('Error leaving/removing user from group:', err);
         res.status(500).json({ message: 'Server error' });
     }
-}
+};
 
 exports.addAdmin = async (req, res) => {
     try {

@@ -82,7 +82,8 @@ const userSchema = new mongoose.Schema({
             enum: ['everyone', 'friends', 'only_me'],
             default: 'everyone'
         }
-    }
+    },
+    friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 });
 
 module.exports = mongoose.model('User', userSchema);

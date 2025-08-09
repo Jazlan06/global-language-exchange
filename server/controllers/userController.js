@@ -146,9 +146,32 @@ exports.getAllOnlineUsers = async (req, res) => {
 
 exports.getUserList = async (req, res) => {
     try {
-        const users = await User.find({}).select({ _id: 1, name: 1 }).lean();
+        const query = req.query.q || '';
+        const regex = new RegExp(query, 'i');
+
+        const users = await User.find({
+            _id: { $ne: req.user.id },
+            name: { $regex: regex }
+        }).select({ _id: 1, name: 1 }).lean();
+
         res.json(users);
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
     }
+};
+
+exports.getFriends = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const user = await User.findById(userId).populate('friends', 'name email');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({ friends: user.friends || [] });
+  } catch (err) {
+    console.error('Error fetching friends:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
 };
