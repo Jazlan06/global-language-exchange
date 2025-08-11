@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import socket from '../utils/socket';
 import GroupMessageBox from '../components/GroupMessageBox';
 import GroupChatMessage from '../components/GroupChatMessages';
+import { useGroupUnread } from '../context/GroupUnreadContext';
 import { fetchGroupDetails } from '../services/groupService';
 import { jwtDecode } from 'jwt-decode';
 
@@ -26,8 +27,99 @@ const GroupDetailsPage = () => {
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [memberToRemove, setMemberToRemove] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [typingUsers, setTypingUsers] = useState([]);
+    const [newMessage, setNewMessage] = useState('');
+    const typingTimeoutRef = useRef(null);
     const currentUserId = getCurrentUserId();
     const messagesEndRef = useRef(null);
+    const { resetUnread } = useGroupUnread();
+    const [joined, setJoined] = useState(false);
+
+    useEffect(() => {
+        socket.connect();
+
+        socket.emit('join', localStorage.getItem('token'));
+
+        socket.once('connect', () => {
+            socket.emit('join_group', { groupId });
+        });
+
+        socket.on('joined_success', () => {
+            setJoined(true);
+        });
+
+        return () => {
+            socket.disconnect();
+        };
+    }, [groupId]);
+
+    useEffect(() => {
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+    }, []);
+
+    useEffect(() => {
+        const handleGroupMessage = (msg) => {
+            if (msg.groupId !== groupId && Notification.permission === 'granted') {
+                const senderName = msg.sender?.name || 'New Group Message';
+                new Notification(senderName, {
+                    body: msg.text,
+                    icon: '/chat-icon.png',
+                });
+            }
+
+            if (msg.groupId === groupId) {
+                setMessages((prev) => [
+                    ...prev,
+                    {
+                        text: msg.text,
+                        sender: msg.sender,
+                        createdAt: msg.createdAt,
+                    },
+                ]);
+            }
+        };
+
+        socket.on('group_message', handleGroupMessage);
+        return () => {
+            socket.off('group_message', handleGroupMessage);
+        };
+    }, [groupId]);
+
+    useEffect(() => {
+        if (!groupInfo) return;
+
+        const handleTyping = ({ groupId: gId, userId }) => {
+            if (gId !== groupInfo._id || userId === currentUserId) return;
+            setTypingUsers((prev) => [...new Set([...prev, userId])]);
+        };
+
+        const handleTypingStop = ({ groupId: gId, userId }) => {
+            if (gId !== groupInfo._id || userId === currentUserId) return;
+            setTypingUsers((prev) => prev.filter((id) => id !== userId));
+        };
+
+        socket.on('group_typing', handleTyping);
+        socket.on('group_typing_stop', handleTypingStop);
+
+        return () => {
+            socket.off('group_typing', handleTyping);
+            socket.off('group_typing_stop', handleTypingStop);
+        };
+    }, [groupInfo, currentUserId]);
+
+    useEffect(() => {
+        if (!groupInfo || newMessage === '') return;
+
+        socket.emit('group_typing', { groupId: groupInfo._id });
+
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+        typingTimeoutRef.current = setTimeout(() => {
+            socket.emit('group_typing_stop', { groupId: groupInfo._id });
+        }, 1000);
+    }, [newMessage, groupInfo]);
 
     useEffect(() => {
         const load = async () => {
@@ -35,13 +127,33 @@ const GroupDetailsPage = () => {
             if (data) {
                 setGroupInfo(data.group);
                 setMessages(data.messages);
+                resetUnread(groupId);
             }
             setLoading(false);
         };
         load();
+
+        socket.connect();
+        socket.emit('join', localStorage.getItem('token'));
+
+        return () => {
+            socket.disconnect();
+        };
     }, [groupId]);
 
     useEffect(() => {
+        const handleFocus = () => {
+            resetUnread(groupId);
+        };
+        window.addEventListener('focus', handleFocus);
+        return () => {
+            window.removeEventListener('focus', handleFocus);
+        };
+    }, [groupId]);
+
+    useEffect(() => {
+        if (!groupId) return;
+
         if (socket.connected) {
             socket.emit('join_group', { groupId });
         } else {
@@ -49,27 +161,9 @@ const GroupDetailsPage = () => {
                 socket.emit('join_group', { groupId });
             });
         }
+
         return () => {
             socket.emit('leave_group', { groupId });
-        };
-    }, [groupId]);
-
-    useEffect(() => {
-        const handleGroupMessage = (msg) => {
-            if (msg.groupId === groupId) {
-                setMessages(prev => [
-                    ...prev,
-                    {
-                        text: msg.text,
-                        sender: { _id: msg.sender },
-                        createdAt: msg.createdAt,
-                    },
-                ]);
-            }
-        };
-        socket.on('group_message', handleGroupMessage);
-        return () => {
-            socket.off('group_message', handleGroupMessage);
         };
     }, [groupId]);
 
@@ -80,10 +174,12 @@ const GroupDetailsPage = () => {
     }, [messages]);
 
     const handleSendMessage = (messageText) => {
+        if (!messageText.trim()) return;
         socket.emit('send_group_msg', {
             groupId,
-            message: messageText,
+            text: messageText,
         });
+        setNewMessage('');
     };
 
     const handlePromote = async (userIdToAdd) => {
@@ -190,11 +286,11 @@ const GroupDetailsPage = () => {
 
                         <ul className="space-y-3 max-h-[calc(100vh-180px)] overflow-y-auto">
                             {groupInfo.members
-                                .filter(member =>
+                                .filter((member) =>
                                     member.name.toLowerCase().includes(searchQuery.toLowerCase())
                                 )
-                                .map(member => {
-                                    const isAdmin = groupInfo.admins.some(admin => admin._id === member._id);
+                                .map((member) => {
+                                    const isAdmin = groupInfo.admins.some((admin) => admin._id === member._id);
                                     const isSelf = currentUserId === member._id;
 
                                     return (
@@ -215,7 +311,7 @@ const GroupDetailsPage = () => {
                                                 </span>
                                             </div>
 
-                                            {!isSelf && groupInfo.admins.some(a => a._id === currentUserId) && (
+                                            {!isSelf && groupInfo.admins.some((a) => a._id === currentUserId) && (
                                                 <div className="flex space-x-2 text-xs">
                                                     {!isAdmin ? (
                                                         <button
@@ -279,16 +375,22 @@ const GroupDetailsPage = () => {
                     ) : messages.length === 0 ? (
                         <p className="text-center text-gray-500 select-none">No messages yet.</p>
                     ) : (
-                        messages.map((msg, idx) => (
-                            <GroupChatMessage key={idx} message={msg} />
-                        ))
+                        messages.map((msg, idx) => <GroupChatMessage key={idx} message={msg} />)
+                    )}
+                    {typingUsers.length > 0 && (
+                        <div className="p-2 text-sm text-gray-500">
+                            {typingUsers
+                                .map((id) => groupInfo?.members.find((u) => u._id === id)?.name || 'Someone')
+                                .join(', ')}{' '}
+                            typing...
+                        </div>
                     )}
                     <div ref={messagesEndRef} />
                 </section>
 
                 {/* Message Input */}
                 <footer className="bg-white border-t px-8 py-4 shadow">
-                    <GroupMessageBox onSend={handleSendMessage} />
+                    <GroupMessageBox message={newMessage} setMessage={setNewMessage} onSend={handleSendMessage} />
                 </footer>
             </main>
 
@@ -328,20 +430,6 @@ const GroupDetailsPage = () => {
                     </div>
                 </div>
             )}
-
-            {/* Fade-in animation */}
-            <style>{`
-                @keyframes fadeIn {
-                    from {opacity: 0; transform: translateY(-12px);}
-                    to {opacity: 1; transform: translateY(0);}
-                }
-                .animate-fadeIn {
-                    animation: fadeIn 0.3s ease forwards;
-                }
-                .select-text {
-                    user-select: text;
-                }
-            `}</style>
         </div>
     );
 };

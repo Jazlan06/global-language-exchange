@@ -3,6 +3,7 @@ const User = require('../models/User');
 const Chat = require('../models/Chat');
 const Message = require('../models/Message');
 const FriendRequest = require('../models/FriendRequest');
+const Group = require('../models/Group');
 const GroupMessage = require('../models/GroupMessage');
 const Subscription = require('../models/Subscription');
 const { sendPushNotification } = require('../controllers/pushController');
@@ -38,27 +39,49 @@ module.exports = (io) => {
             console.log(`🧑‍🤝‍🧑 Socket ${socket.id} joined group ${groupId}`);
         });
 
-        socket.on('send_group_msg', async ({ groupId, message }) => {
+        socket.on('send_group_msg', async ({ groupId, text }) => {
             try {
-                const userId = [...onlineUsers.entries()].find(([_, id]) => id === socket.id)?.[0];
+                const userId = [...onlineUsers.entries()].find(([uid, sid]) => sid === socket.id)?.[0];
                 if (!userId) return;
 
-                const newMessage = await GroupMessage.create({
+                const group = await Group.findById(groupId);
+                if (!group) return;
+
+                const groupMessage = new GroupMessage({
                     group: groupId,
                     sender: userId,
-                    text: message
+                    text,
                 });
 
+                await groupMessage.save();
+
+                const populated = await groupMessage.populate('sender', 'name');
+
                 io.to(groupId).emit('group_message', {
-                    groupId,
-                    sender: userId,
-                    text: message,
-                    createdAt: newMessage.createdAt
+                    ...populated.toObject(),
+                    groupId: groupId,       
                 });
+
             } catch (err) {
-                console.error('❌ Error sending group message:', err.message);
+                console.error('❌ Error sending group message:', err);
             }
         });
+
+
+        socket.on('group_typing', ({ groupId }) => {
+            socket.to(groupId).emit('group_typing', {
+                groupId,
+                userId: socket.user?.id,
+            });
+        });
+
+        socket.on('group_typing_stop', ({ groupId }) => {
+            socket.to(groupId).emit('group_typing_stop', {
+                groupId,
+                userId: socket.user?.id,
+            });
+        });
+
 
         socket.on('join', async (token) => {
             try {
@@ -69,12 +92,15 @@ module.exports = (io) => {
                 await User.findByIdAndUpdate(userId, { isOnline: true, socketId: socket.id });
 
                 console.log(`✅ User ${userId} joined with socket ID: ${socket.id}`);
+                socket.emit('joined_success');
+
                 await notifyFriendsStatus(userId, 'online', io);
             } catch (error) {
                 console.error('❌ Error joining socket:', error.message);
                 socket.emit('error', { message: 'Authentication failed' });
             }
         });
+
 
         socket.on('send_message', async ({ chatId, text }) => {
             try {
@@ -100,7 +126,6 @@ module.exports = (io) => {
 
                 await message.populate('sender', 'name profilePic');
 
-                // Emit to sender (confirmation)
                 socket.emit('receive_message', {
                     chatId,
                     text: message.text,

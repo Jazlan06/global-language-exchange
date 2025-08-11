@@ -25,7 +25,7 @@ exports.deleteGroupMessage = async (req, res) => {
         }
         await GroupMessage.findByIdAndDelete(messageId);
         res.json({
-            message: 'Message deleted' 
+            message: 'Message deleted'
         })
     } catch (err) {
         console.error('Error deleting group message:', err);
@@ -35,6 +35,7 @@ exports.deleteGroupMessage = async (req, res) => {
 
 exports.sendGroupMessage = async (req, res) => {
     try {
+        console.log("Inside")
         const { text } = req.body;
         const { groupId } = req.params;
 
@@ -50,6 +51,17 @@ exports.sendGroupMessage = async (req, res) => {
         });
 
         await message.save();
+        await message.populate('sender', 'name');
+
+        req.app.get('io').to(groupId.toString()).emit('group_message', {
+            groupId: groupId.toString(),
+            text: message.text,
+            sender: {
+                _id: message.sender._id,
+                name: message.sender.name,
+            },
+            createdAt: message.createdAt,
+        });
 
         res.status(201).json({ message: 'Message sent', data: message });
     } catch (err) {
@@ -57,3 +69,4 @@ exports.sendGroupMessage = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+

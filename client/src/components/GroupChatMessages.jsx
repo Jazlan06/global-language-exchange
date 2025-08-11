@@ -24,11 +24,11 @@ const GroupChatMessage = ({ message }) => {
             >
                 {!isOwnMessage && (
                     <div className="text-sm font-semibold mb-1">
-                        {message.sender?.name || 'Unknown'}
+                        {message.sender?.name || message.senderName || 'Unknown'}
                     </div>
                 )}
                 <div className="break-words">{message.text}</div>
-                <div className="text-xs text-gray-400 mt-1 text-right">
+                <div className="text-xs mt-1 text-right">
                     {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>
             </div>

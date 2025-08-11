@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 
-const GroupMessageBox = ({ onSend }) => {
-    const [message, setMessage] = useState('');
-
+const GroupMessageBox = ({ onSend, message, setMessage }) => {
     const handleSend = () => {
         const trimmed = message.trim();
         if (!trimmed) return;

@@ -176,3 +176,42 @@ exports.deleteGroup = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 }
+
+exports.getUnreadCounts = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const groups = await Group.find({ members: userId });
+
+        const unreadCounts = {};
+
+        for (const group of groups) {
+            const count = await GroupMessage.countDocuments({
+                group: group._id,
+                readBy: { $ne: userId },
+            });
+            unreadCounts[group._id] = count;
+        }
+
+        res.json(unreadCounts);
+    } catch (err) {
+        console.error('Error in getUnreadCounts:', err);
+        res.status(500).json({ message: 'Failed to fetch unread counts' });
+    }
+};
+
+exports.markGroupAsRead = async (req, res) => {
+    const userId = req.user._id;
+    const groupId = req.params.groupId;
+
+    try {
+        await GroupMessage.updateMany(
+            { group: groupId, readBy: { $ne: userId } },
+            { $addToSet: { readBy: userId } }
+        );
+
+        res.json({ message: 'Marked as read' });
+    } catch (err) {
+        console.error('Error marking messages as read:', err);
+        res.status(500).json({ message: 'Failed to mark messages as read' });
+    }
+};

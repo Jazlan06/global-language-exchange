@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CreateGroupForm from '../components/CreateGroupForm';
+import { useGroupUnread } from '../context/GroupUnreadContext';
 
 function parseJwt(token) {
     try {
@@ -15,6 +16,8 @@ const GroupListPage = () => {
     const decodedToken = rawToken ? parseJwt(rawToken) : null;
     const isTokenExpired = decodedToken?.exp * 1000 < Date.now();
     const currentUserId = decodedToken?.id || null;
+
+    const { unreadCounts } = useGroupUnread();
 
     if (!rawToken || isTokenExpired || !currentUserId) {
         return (
@@ -74,13 +77,12 @@ const GroupListPage = () => {
         <div
             className="p-6 max-w-5xl mx-auto min-h-screen"
             style={{
-                background: 'linear-gradient(135deg, #FFDEE9 0%, #B5FFFC 25%, #E0C3FC 50%, #FFE29F 75%, #FFDEE9 100%)',
+                background:
+                    'linear-gradient(135deg, #FFDEE9 0%, #B5FFFC 25%, #E0C3FC 50%, #FFE29F 75%, #FFDEE9 100%)',
             }}
         >
             <div className="flex items-center justify-between mb-6">
-                <h1 className="text-lg font-semibold text-gray-900 tracking-wide">
-                    Your Groups
-                </h1>
+                <h1 className="text-lg font-semibold text-gray-900 tracking-wide">Your Groups</h1>
                 <button
                     onClick={handleCreateClick}
                     className="px-3 py-1.5 rounded-lg bg-green-600 text-white font-medium shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 transition-colors"
@@ -106,22 +108,34 @@ const GroupListPage = () => {
                 <p className="text-gray-700 text-center mt-16">You’re not part of any groups yet.</p>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                    {groups.map((group) => (
-                        <div
-                            key={group._id}
-                            onClick={() => handleGroupClick(group._id)}
-                            className="cursor-pointer bg-white rounded-xl shadow-lg p-5 hover:shadow-2xl transform hover:-translate-y-1 transition duration-300 ease-in-out"
-                            title={`Members: ${group.members?.length ?? 0}`}
-                            role="button"
-                            tabIndex={0}
-                            onKeyDown={(e) => e.key === 'Enter' && handleGroupClick(group._id)}
-                        >
-                            <h2 className="text-lg font-semibold text-gray-900 mb-2 truncate">{group.name}</h2>
-                            <p className="text-sm text-gray-600">
-                                {(group.members?.length ?? 0)} member{(group.members?.length ?? 0) !== 1 && 's'}
-                            </p>
-                        </div>
-                    ))}
+                    {groups.map((group) => {
+                        const unreadCount = unreadCounts[group._id] || 0;
+                        return (
+                            <div
+                                key={group._id}
+                                onClick={() => handleGroupClick(group._id)}
+                                className="cursor-pointer bg-white rounded-xl shadow-lg p-5 hover:shadow-2xl transform hover:-translate-y-1 transition duration-300 ease-in-out relative"
+                                title={`Members: ${group.members?.length ?? 0}`}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e) => e.key === 'Enter' && handleGroupClick(group._id)}
+                            >
+                                <h2 className="text-lg font-semibold text-gray-900 mb-2 truncate">{group.name}</h2>
+                                <p className="text-sm text-gray-600">
+                                    {(group.members?.length ?? 0)} member{(group.members?.length ?? 0) !== 1 && 's'}
+                                </p>
+
+                                {unreadCount > 0 && (
+                                    <span
+                                        className="absolute top-3 right-3 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full"
+                                        aria-label={`${unreadCount} unread messages`}
+                                    >
+                                        {unreadCount}
+                                    </span>
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
             )}
 
