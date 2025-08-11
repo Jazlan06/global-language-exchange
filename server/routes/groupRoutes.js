@@ -15,6 +15,7 @@ router.post('/:groupId/addAdmin', auth, groupController.addAdmin);
 router.post('/:groupId/removeAdmin', auth, groupController.removeAdmin);
 router.delete('/:groupId', auth, groupController.deleteGroup);
 router.post('/:groupId/mark-read', auth, groupController.markGroupAsRead);
+router.put('/groups/:groupId', auth, groupController.editGroup);
 
 
 module.exports = router;

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import socket from '../utils/socket';
 import GroupMessageBox from '../components/GroupMessageBox';
 import GroupChatMessage from '../components/GroupChatMessages';
@@ -28,12 +28,14 @@ const GroupDetailsPage = () => {
     const [memberToRemove, setMemberToRemove] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [typingUsers, setTypingUsers] = useState([]);
+    const [showLeaveModal, setShowLeaveModal] = useState(false);
     const [newMessage, setNewMessage] = useState('');
     const typingTimeoutRef = useRef(null);
     const currentUserId = getCurrentUserId();
     const messagesEndRef = useRef(null);
     const { resetUnread } = useGroupUnread();
     const [joined, setJoined] = useState(false);
+    const navigate = useNavigate();
 
     useEffect(() => {
         socket.connect();
@@ -229,8 +231,12 @@ const GroupDetailsPage = () => {
                 body: JSON.stringify({ userId: userIdToRemove }),
             });
             if (!res.ok) throw new Error('Failed to remove user');
-            const updated = await fetchGroupDetails(groupId);
-            setGroupInfo(updated.group);
+            if (userIdToRemove === currentUserId) {
+                navigate('/groups');
+            } else {
+                const updated = await fetchGroupDetails(groupId);
+                setGroupInfo(updated.group);
+            }
         } catch (err) {
             console.error(err.message);
         }
@@ -346,6 +352,55 @@ const GroupDetailsPage = () => {
                                     );
                                 })}
                         </ul>
+                        {/* After your members list */}
+                        <div className="mt-6 border-t pt-4">
+                            <button
+                                onClick={() => setShowLeaveModal(true)}
+                                className="w-full py-2 rounded-md bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400 transition"
+                                aria-label="Leave group"
+                            >
+                                Leave Group
+                            </button>
+                        </div>
+
+                        {showLeaveModal && (
+                            <div
+                                className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+                                role="dialog"
+                                aria-modal="true"
+                                aria-labelledby="leave-group-title"
+                            >
+                                <div className="bg-white rounded-lg shadow-xl w-96 p-6 space-y-4 animate-fadeIn">
+                                    <h2
+                                        id="leave-group-title"
+                                        className="text-xl font-semibold text-gray-900 select-none"
+                                    >
+                                        Leave Group
+                                    </h2>
+                                    <p className="text-gray-700 select-text">
+                                        Are you sure you want to leave this group? You will no longer receive messages or notifications from it.
+                                    </p>
+                                    <div className="flex justify-end space-x-4">
+                                        <button
+                                            onClick={() => setShowLeaveModal(false)}
+                                            className="px-5 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 transition"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                handleRemove(currentUserId);
+                                                setShowLeaveModal(false);
+                                            }}
+                                            className="px-5 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400 transition"
+                                        >
+                                            Leave
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                     </>
                 ) : (
                     <p className="text-gray-500 select-none">No members found.</p>

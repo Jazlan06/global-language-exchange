@@ -215,3 +215,21 @@ exports.markGroupAsRead = async (req, res) => {
         res.status(500).json({ message: 'Failed to mark messages as read' });
     }
 };
+
+exports.editGroup = async (req, res) => {
+    const { name, description, topic, languageLevel } = req.body;
+    const group = await Group.findById(req.params.groupId);
+    if (!group) return res.status(404).json({ message: 'Group not found' });
+
+    if (!group.admins.includes(req.user.id)) {
+        return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    if (name) group.name = name;
+    if (description) group.description = description;
+    if (topic) group.topic = topic;
+    if (languageLevel) group.languageLevel = languageLevel;
+
+    await group.save();
+    res.json({ message: 'Group updated', group });
+};

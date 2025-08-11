@@ -46,6 +46,8 @@ export default function Navbar() {
                             <Link to="/profile" className="text-gray-700 hover:text-blue-600 font-medium">Profile</Link>
                             <Link to="/quizzes/progress" className="text-gray-700 hover:text-blue-600 font-medium">Progress</Link>
                             <Link to="/friends" className="text-gray-700 hover:text-blue-600 font-medium">Friends</Link>
+                            <Link to="/chat" className="text-gray-700 hover:text-blue-600 font-medium">Chat</Link>
+                            <Link to="/groups" className="text-gray-700 hover:text-blue-600 font-medium">Groups</Link>
                             <button
                                 onClick={logout}
                                 className="bg-red-500 text-white px-4 py-1.5 rounded hover:bg-red-600"
@@ -71,6 +73,8 @@ export default function Navbar() {
                             <Link to="/profile" onClick={closeMenu} className="block text-gray-700 hover:text-blue-600">Profile</Link>
                             <Link to="/quizzes/progress" onClick={closeMenu} className="block text-gray-700 hover:text-blue-600">Progress</Link>
                             <Link to="/friends" onClick={closeMenu} className="block text-gray-700 hover:text-blue-600">Friends</Link>
+                            <Link to="/chat" onClick={closeMenu} className="block text-gray-700 hover:text-blue-600">Chat</Link>
+                            <Link to="/groups" onClick={closeMenu} className="block text-gray-700 hover:text-blue-600">Groups</Link>
                             <button
                                 onClick={() => {
                                     closeMenu();
