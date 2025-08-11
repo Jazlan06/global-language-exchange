@@ -1,50 +1,46 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import IncomingCallModal from '../components/Call/IncomingCallModal';
-import { useSocket } from '../context/SocketContext';
+import socket from '../utils/socket';
 
-const IncomingCallHandler = ({ currentUser }) => {
+const IncomingCallHandler = () => {
     const [incomingCall, setIncomingCall] = useState(null);
-    const socket = useSocket();
     const navigate = useNavigate();
 
     useEffect(() => {
-        if (!socket) return;
+        socket.on('incoming_call', ({ chatId, fromUser }) => {
+            setIncomingCall({ chatId, fromUser });
+        });
 
-        const handleIncomingCall = ({ fromUser, chatId, offer }) => {
-            setIncomingCall({ caller: fromUser, chatId, offer });
-        };
-
-        socket.on('incoming_call', handleIncomingCall);
+        socket.on('call_ended', () => {
+            setIncomingCall(null);
+        });
 
         return () => {
-            socket.off('incoming_call', handleIncomingCall);
+            socket.off('incoming_call');
+            socket.off('call_ended');
         };
-    }, [socket]);
+    }, []);
 
-    const acceptCall = () => {
-        navigate(`/call/${incomingCall.chatId}/receive`, {
-            state: {
-                fromUser: incomingCall.caller,
-                offer: incomingCall.offer
-            }
-        });
+    const handleAccept = () => {
+        navigate(`/call/${incomingCall.chatId}`);
         setIncomingCall(null);
     };
 
-    const declineCall = () => {
-        socket.emit('call_declined', { to: incomingCall.caller._id });
+    const handleDecline = () => {
+        socket.emit('call_declined', { chatId: incomingCall.chatId });
         setIncomingCall(null);
     };
 
     if (!incomingCall) return null;
 
     return (
-        <IncomingCallModal
-            callerName={incomingCall.caller.name}
-            onAccept={acceptCall}
-            onDecline={declineCall}
-        />
+        <div className="fixed bottom-4 left-4 bg-white text-black p-4 rounded shadow-lg z-50">
+            <p><strong>{incomingCall.fromUser.name}</strong> is calling...</p>
+            <div className="mt-2 flex gap-2">
+                <button onClick={handleAccept} className="bg-green-500 px-4 py-1 text-white rounded">Accept</button>
+                <button onClick={handleDecline} className="bg-red-500 px-4 py-1 text-white rounded">Decline</button>
+            </div>
+        </div>
     );
 };
 

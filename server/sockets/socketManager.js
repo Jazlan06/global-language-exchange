@@ -171,32 +171,26 @@ module.exports = (io) => {
             }
         });
 
-        socket.on('webrtc_offer', ({ to, offer }) => {
-            const recipientSocket = onlineUsers.get(to);
-            if (recipientSocket) {
-                io.to(recipientSocket).emit('webrtc_offer', {
-                    from: socket.id,
-                    offer
-                });
-            }
+        socket.on('webrtc_offer', ({ chatId, signal }) => {
+            if (!chatId || !signal) return;
+            socket.to(chatId).emit('webrtc_offer', {
+                signal,
+                from: socket.user?.id
+            });
         });
 
-        socket.on('webrtc_answer', ({ to, answer }) => {
-            const recipientSocket = onlineUsers.get(to);
-            if (recipientSocket) {
-                io.to(recipientSocket).emit('webrtc_answer', {
-                    from: socket.id,
-                    answer
-                });
-            }
+        socket.on('webrtc_answer', ({ chatId, signal }) => {
+            if (!chatId || !signal) return;
+            socket.to(chatId).emit('webrtc_answer', {
+                signal,
+                from: socket.user?.id
+            });
         });
 
-        socket.on('call_ended', ({ to }) => {
-            const recipientSocket = onlineUsers.get(to);
-            if (recipientSocket) {
-                io.to(recipientSocket).emit('call_ended');
-                console.log(`📞 Call ended signal sent from ${socket.user?.id} to ${to}`);
-            }
+        socket.on('call_ended', ({ chatId }) => {
+            socket.to(chatId).emit('call_ended', {
+                from: socket.user?.id
+            });
         });
 
         socket.on('incoming_call', ({ to, fromUser, chatId, offer }) => {
@@ -211,22 +205,18 @@ module.exports = (io) => {
             }
         });
 
-        socket.on('call_declined', ({ to }) => {
-            const recipientSocket = onlineUsers.get(to);
-            if (recipientSocket) {
-                io.to(recipientSocket).emit('call_declined');
-                console.log(`🚫 Call declined by ${socket.user?.id}, notified ${to}`);
-            }
+        socket.on('call_declined', ({ chatId }) => {
+            socket.to(chatId).emit('call_declined', {
+                from: socket.user?.id
+            });
         });
 
-        socket.on('webrtc_ice_candidate', ({ to, candidate }) => {
-            const recipientSocket = onlineUsers.get(to);
-            if (recipientSocket) {
-                io.to(recipientSocket).emit('webrtc_ice_candidate', {
-                    from: socket.id,
-                    candidate
-                });
-            }
+        socket.on('webrtc_candidate', ({ chatId, candidate }) => {
+            if (!chatId || !candidate) return;
+            socket.to(chatId).emit('webrtc_candidate', {
+                candidate,
+                from: socket.user?.id
+            });
         });
 
         socket.on('user_typing', ({ chatId, to }) => {
@@ -248,6 +238,47 @@ module.exports = (io) => {
                 });
             }
         });
+
+        socket.on('join_room', ({ chatId }) => {
+            socket.join(chatId);
+            console.log(`👥 Socket ${socket.id} joined room ${chatId}`);
+        });
+
+
+        socket.on('start_call', async ({ chatId, receiverId }) => {
+            try {
+                const senderId = socket.user?.id;
+                if (!senderId || !receiverId || !chatId) return;
+
+                // Join caller to the room
+                socket.join(chatId);
+
+                // Get receiver socket
+                const recipientSocketId = onlineUsers.get(receiverId);
+                if (recipientSocketId) {
+                    // Make sure receiver joins room
+                    const recipientSocket = io.sockets.sockets.get(recipientSocketId);
+                    if (recipientSocket) recipientSocket.join(chatId);
+
+                    // Get full sender user data
+                    const fromUser = await User.findById(senderId).select('_id name profilePic');
+
+                    // Send incoming call to receiver
+                    io.to(recipientSocketId).emit('incoming_call', {
+                        chatId,
+                        fromUser,
+                    });
+
+                    console.log(`📞 Incoming call from ${fromUser.name} (${senderId}) ➡️ ${receiverId}`);
+                } else {
+                    console.log(`⚠️ Receiver ${receiverId} is offline. Cannot send call.`);
+                }
+
+            } catch (err) {
+                console.error('❌ Error in start_call:', err.message);
+            }
+        });
+
 
 
         socket.on('disconnect', async () => {

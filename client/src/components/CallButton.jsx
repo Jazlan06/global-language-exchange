@@ -1,55 +1,31 @@
-import { useSocket } from '../context/SocketContext';
-import { useAuth } from '../hooks/useAuth';
-import axios from 'axios';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
+import socket from '../utils/socket';
 
-export default function CallButton({ chatId, receiver }) {
-    const { token, user } = useAuth();
-    const socket = useSocket();
+const CallButton = ({ chatId, receiver }) => {
     const navigate = useNavigate();
 
-    const startCall = async () => {
-        try {
-            const res = await axios.post(
-                '/api/calls/start',
-                { chatId, receiverId: receiver._id },
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
+    const handleStartCall = () => {
+        if (!chatId || !receiver?._id) return;
 
-            const session = res.data.session;
+        // Emit socket event to notify receiver
+        socket.emit('start_call', {
+            chatId,
+            receiverId: receiver._id,
+        });
 
-            socket.emit('webrtc_offer', {
-                to: receiver._id,
-                fromUser: user,
-                chatId: chatId,
-                sessionId: session._id,
-            });
-
-            // Navigate to the call screen immediately
-            navigate(`/call/${chatId}`, {
-                state: {
-                    sessionId: session._id,
-                    isCaller: true,
-                    receiver,
-                },
-            });
-        } catch (err) {
-            console.error('Error starting call:', err);
-            toast.error('Could not start call. Try again.');
-        }
+        // Navigate to call screen
+        navigate(`/call/${chatId}`);
     };
 
     return (
         <button
-            onClick={startCall}
-            className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 transition"
+            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+            onClick={handleStartCall}
         >
             📞 Call
         </button>
     );
-}
+};
+
+export default CallButton;
