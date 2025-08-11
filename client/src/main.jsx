@@ -2,7 +2,8 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './hooks/useAuth.jsx';
-import { GroupUnreadProvider } from './context/GroupUnreadContext'; // import your provider
+import { GroupUnreadProvider } from './context/GroupUnreadContext';
+import { SocketProvider } from './context/SocketContext.jsx'; // ✅ NEW LINE
 import App from './App.jsx';
 import './index.css';
 import { ToastContainer } from 'react-toastify';
@@ -13,21 +14,23 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
         <AuthProvider>
             <GroupUnreadProvider>
-                <BrowserRouter>
-                    <Navbar />
-                    <App />
-                    <ToastContainer
-                        position="top-center"
-                        autoClose={3000}
-                        hideProgressBar={false}
-                        newestOnTop={false}
-                        closeOnClick
-                        pauseOnFocusLoss
-                        draggable
-                        pauseOnHover
-                        theme="light"
-                    />
-                </BrowserRouter>
+                <SocketProvider>
+                    <BrowserRouter>
+                        <Navbar />
+                        <App />
+                        <ToastContainer
+                            position="top-center"
+                            autoClose={3000}
+                            hideProgressBar={false}
+                            newestOnTop={false}
+                            closeOnClick
+                            pauseOnFocusLoss
+                            draggable
+                            pauseOnHover
+                            theme="light"
+                        />
+                    </BrowserRouter>
+                </SocketProvider>
             </GroupUnreadProvider>
         </AuthProvider>
     </React.StrictMode>

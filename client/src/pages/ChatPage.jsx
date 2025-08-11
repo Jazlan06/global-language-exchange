@@ -8,6 +8,7 @@ import {
     createOrGetChat
 } from '../utils/api';
 import socket from '../utils/socket';
+import CallButton from '../components/CallButton';
 import { v4 as uuidv4 } from 'uuid';
 
 const getCurrentUserId = () => {
@@ -111,38 +112,38 @@ const ChatPage = () => {
         };
     }, [selectedChat]);
 
-useEffect(() => {
-    socket.on('receive_message', (msg) => {
-        const normalizedMsg = {
-            _id: uuidv4(),
-            chat: msg.chatId,
-            text: msg.text,
-            createdAt: msg.createdAt,
-            sender: msg.from,
-        };
+    useEffect(() => {
+        socket.on('receive_message', (msg) => {
+            const normalizedMsg = {
+                _id: uuidv4(),
+                chat: msg.chatId,
+                text: msg.text,
+                createdAt: msg.createdAt,
+                sender: msg.from,
+            };
 
-        if (msg.chatId === selectedChat?._id) {
-            setMessages(prev => [...prev, normalizedMsg]);
-        } else {
-            setUnreadCounts(prev => ({
-                ...prev,
-                [msg.chatId]: (prev[msg.chatId] || 0) + 1
-            }));
+            if (msg.chatId === selectedChat?._id) {
+                setMessages(prev => [...prev, normalizedMsg]);
+            } else {
+                setUnreadCounts(prev => ({
+                    ...prev,
+                    [msg.chatId]: (prev[msg.chatId] || 0) + 1
+                }));
 
-            if (!isTabActive && "Notification" in window && Notification.permission === "granted") {
-                const senderName = msg.from?.name || 'New Message';
-                new Notification(senderName, {
-                    body: msg.text,
-                    icon: '/chat-icon.png' 
-                });
+                if (!isTabActive && "Notification" in window && Notification.permission === "granted") {
+                    const senderName = msg.from?.name || 'New Message';
+                    new Notification(senderName, {
+                        body: msg.text,
+                        icon: '/chat-icon.png'
+                    });
+                }
             }
-        }
-    });
+        });
 
-    return () => {
-        socket.off('receive_message');
-    };
-}, [selectedChat, isTabActive]);
+        return () => {
+            socket.off('receive_message');
+        };
+    }, [selectedChat, isTabActive]);
 
 
     useEffect(() => {
@@ -270,7 +271,11 @@ useEffect(() => {
             {/* Chat Area */}
             <div className="flex-1 flex flex-col md:ml-64">
                 <div className="p-4 border-b bg-white flex justify-between items-center">
-                    <h3 className="text-xl font-semibold">Messages</h3>
+                    <h3 className="text-xl mr-10 font-semibold">Messages</h3>
+                    <CallButton
+                        chatId={selectedChat?._id}
+                        receiver={selectedChat?.participants.find(p => p._id !== currentUserId)}
+                    />
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4 space-y-3">

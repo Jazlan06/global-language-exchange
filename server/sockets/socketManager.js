@@ -59,7 +59,7 @@ module.exports = (io) => {
 
                 io.to(groupId).emit('group_message', {
                     ...populated.toObject(),
-                    groupId: groupId,       
+                    groupId: groupId,
                 });
 
             } catch (err) {
@@ -188,6 +188,34 @@ module.exports = (io) => {
                     from: socket.id,
                     answer
                 });
+            }
+        });
+
+        socket.on('call_ended', ({ to }) => {
+            const recipientSocket = onlineUsers.get(to);
+            if (recipientSocket) {
+                io.to(recipientSocket).emit('call_ended');
+                console.log(`📞 Call ended signal sent from ${socket.user?.id} to ${to}`);
+            }
+        });
+
+        socket.on('incoming_call', ({ to, fromUser, chatId, offer }) => {
+            const recipientSocket = onlineUsers.get(to);
+            if (recipientSocket) {
+                io.to(recipientSocket).emit('incoming_call', {
+                    fromUser,
+                    chatId,
+                    offer
+                });
+                console.log(`📞 Incoming call from ${fromUser._id} to ${to}`);
+            }
+        });
+
+        socket.on('call_declined', ({ to }) => {
+            const recipientSocket = onlineUsers.get(to);
+            if (recipientSocket) {
+                io.to(recipientSocket).emit('call_declined');
+                console.log(`🚫 Call declined by ${socket.user?.id}, notified ${to}`);
             }
         });
 
