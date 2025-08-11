@@ -30,6 +30,13 @@ const GroupDetailsPage = () => {
     const [typingUsers, setTypingUsers] = useState([]);
     const [showLeaveModal, setShowLeaveModal] = useState(false);
     const [newMessage, setNewMessage] = useState('');
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editForm, setEditForm] = useState({
+        name: '',
+        description: '',
+        topic: '',
+        languageLevel: ''
+    });
     const typingTimeoutRef = useRef(null);
     const currentUserId = getCurrentUserId();
     const messagesEndRef = useRef(null);
@@ -184,6 +191,43 @@ const GroupDetailsPage = () => {
         setNewMessage('');
     };
 
+    const openEditModal = () => {
+        setEditForm({
+            name: groupInfo?.name || '',
+            description: groupInfo?.description || '',
+            topic: groupInfo?.topic || '',
+            languageLevel: groupInfo?.languageLevel || ''
+        });
+        setShowEditModal(true);
+    };
+
+    const handleEditChange = (e) => {
+        setEditForm({
+            ...editForm,
+            [e.target.name]: e.target.value
+        });
+    };
+
+    const handleEditSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const res = await fetch(`/api/groups/${groupId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify(editForm)
+            });
+            if (!res.ok) throw new Error('Failed to update group');
+            const data = await res.json();
+            setGroupInfo(data.group);
+            setShowEditModal(false);
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
     const handlePromote = async (userIdToAdd) => {
         try {
             const res = await fetch(`/api/groups/${groupId}/addAdmin`, {
@@ -293,15 +337,15 @@ const GroupDetailsPage = () => {
                         <ul className="space-y-3 max-h-[calc(100vh-180px)] overflow-y-auto">
                             {groupInfo.members
                                 .filter((member) =>
-                                    member.name.toLowerCase().includes(searchQuery.toLowerCase())
+                                    (member?.name?.toLowerCase() || '').includes(searchQuery.toLowerCase())
                                 )
-                                .map((member) => {
+                                .map((member, index) => {
                                     const isAdmin = groupInfo.admins.some((admin) => admin._id === member._id);
                                     const isSelf = currentUserId === member._id;
 
                                     return (
                                         <li
-                                            key={member._id}
+                                            key={member._id || member.name || index}
                                             className="flex items-center justify-between p-2 rounded-lg hover:bg-indigo-50 transition cursor-default"
                                         >
                                             <div className="flex items-center space-x-3">
@@ -352,6 +396,7 @@ const GroupDetailsPage = () => {
                                     );
                                 })}
                         </ul>
+
                         {/* After your members list */}
                         <div className="mt-6 border-t pt-4">
                             <button
@@ -411,9 +456,42 @@ const GroupDetailsPage = () => {
             <main className="flex-1 flex flex-col ml-0 md:ml-72">
                 {/* Header */}
                 <header className="bg-white border-b px-8 py-4 shadow flex items-center justify-between sticky top-0 z-10">
-                    <h1 className="text-2xl font-semibold text-gray-900 select-none">
-                        {groupInfo?.name || 'Group Chat'}
-                    </h1>
+                    <div className="cursor-pointer inline-flex items-center space-x-2 group">
+                        <button
+                            onClick={() => {
+                                if (groupInfo?.admins.some((admin) => admin._id === currentUserId)) {
+                                    openEditModal();
+                                }
+                            }}
+                            className="inline-flex items-center space-x-2 focus:outline-none"
+                            title={
+                                groupInfo?.admins.some((admin) => admin._id === currentUserId)
+                                    ? 'Click to edit group'
+                                    : 'Only admins can edit'
+                            }
+                        >
+                            <h1 className="text-2xl font-semibold text-gray-900 group-hover:underline">
+                                {groupInfo?.name || 'Group Chat'}
+                            </h1>
+                            {groupInfo?.admins.some((admin) => admin._id === currentUserId) && (
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-5 w-5 text-gray-400 group-hover:text-indigo-500 transition"
+                                    viewBox="0 0 20 20"
+                                    fill="currentColor"
+                                >
+                                    <path d="M17.414 2.586a2 2 0 00-2.828 0L8 9.172V12h2.828l6.586-6.586a2 2 0 000-2.828z" />
+                                    <path
+                                        fillRule="evenodd"
+                                        d="M5 13a1 1 0 011-1h2.586l-6 6H3a1 1 0 01-1-1v-.586l6-6V13z"
+                                        clipRule="evenodd"
+                                    />
+                                </svg>
+                            )}
+                        </button>
+                    </div>
+
+
                     <button
                         onClick={() => setShowMembers(!showMembers)}
                         className="md:hidden bg-indigo-100 text-indigo-700 px-4 py-2 rounded-lg shadow-sm hover:bg-indigo-200 transition focus:outline-none focus:ring-2 focus:ring-indigo-400"
@@ -448,6 +526,91 @@ const GroupDetailsPage = () => {
                     <GroupMessageBox message={newMessage} setMessage={setNewMessage} onSend={handleSendMessage} />
                 </footer>
             </main>
+            {/* Outside of aside and main */}
+            {showEditModal && (
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="edit-group-title"
+                >
+                    <div className="bg-white rounded-lg shadow-xl w-96 p-6 space-y-4 animate-fadeIn">
+                        <h2 id="edit-group-title" className="text-xl font-semibold text-gray-900 select-none">
+                            Edit Group
+                        </h2>
+                        <form onSubmit={handleEditSubmit} className="space-y-4">
+                            <div>
+                                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                                    Group Name
+                                </label>
+                                <input
+                                    id="name"
+                                    name="name"
+                                    type="text"
+                                    value={editForm.name}
+                                    onChange={handleEditChange}
+                                    required
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+                                    Description
+                                </label>
+                                <textarea
+                                    id="description"
+                                    name="description"
+                                    value={editForm.description}
+                                    onChange={handleEditChange}
+                                    rows={3}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="topic" className="block text-sm font-medium text-gray-700">
+                                    Topic
+                                </label>
+                                <input
+                                    id="topic"
+                                    name="topic"
+                                    type="text"
+                                    value={editForm.topic}
+                                    onChange={handleEditChange}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="languageLevel" className="block text-sm font-medium text-gray-700">
+                                    Language Level
+                                </label>
+                                <input
+                                    id="languageLevel"
+                                    name="languageLevel"
+                                    type="text"
+                                    value={editForm.languageLevel}
+                                    onChange={handleEditChange}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                />
+                            </div>
+                            <div className="flex justify-end space-x-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowEditModal(false)}
+                                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                >
+                                    Save
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
 
             {/* Confirm Remove Modal */}
             {showConfirmModal && (
