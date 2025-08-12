@@ -9,6 +9,7 @@ import {
 } from '../utils/api';
 import socket from '../utils/socket';
 import CallButton from '../components/CallButton';
+import { toast } from 'react-toastify';
 import { v4 as uuidv4 } from 'uuid';
 
 const getCurrentUserId = () => {
@@ -33,7 +34,10 @@ const ChatPage = () => {
     const [isTyping, setIsTyping] = useState(false);
     const [unreadCounts, setUnreadCounts] = useState({});
     const [isTabActive, setIsTabActive] = useState(true);
+    const [flagModal, setFlagModal] = useState({ open: false, messageId: null });
+    const [flagReason, setFlagReason] = useState('');
     const currentUserId = getCurrentUserId();
+    const messagesEndRef = useRef(null);
     const typingTimeoutRef = useRef(null);
     const typingEmitTimeoutRef = useRef(null);
     const typingDisplayTimeoutRef = useRef(null);
@@ -54,6 +58,12 @@ const ChatPage = () => {
             });
         }
     }, []);
+
+    useEffect(() => {
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [messages]);
 
     useEffect(() => {
         const handleVisibility = () => setIsTabActive(!document.hidden);
@@ -183,6 +193,32 @@ const ChatPage = () => {
         });
     };
 
+    const handleFlagMessage = async () => {
+        if (!flagReason.trim()) return alert('Please enter a reason.');
+
+        try {
+            const token = localStorage.getItem('token');
+            await fetch('/api/moderation/flag', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    messageId: flagModal.messageId,
+                    reason: flagReason.trim()
+                })
+            });
+
+            toast.success('Message flagged successfully.');
+            setFlagModal({ open: false, messageId: null });
+            setFlagReason('');
+        } catch (err) {
+            alert('Failed to flag message.');
+        }
+    };
+
+
     const filtered = searchTerm
         ? userList.filter(u =>
             u.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
@@ -279,23 +315,74 @@ const ChatPage = () => {
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                    {!selectedChat
-                        ? <p className="text-gray-500">Swipe from left edge to open chats.</p>
-                        : messages.length === 0
-                            ? <p className="text-gray-500">No messages yet.</p>
-                            : messages.map(msg => (
+                    {!selectedChat ? (
+                        <p className="text-gray-500">Swipe from left edge to open chats.</p>
+                    ) : messages.length === 0 ? (
+                        <p className="text-gray-500">No messages yet.</p>
+                    ) : (
+                        messages.map(msg => (
+                            <div key={msg._id}>
                                 <div
-                                    key={msg._id || uuidv4()}
-                                    className={`max-w-[70%] p-3 rounded-lg ${msg.sender && msg.sender._id === currentUserId
-                                        ? 'bg-blue-600 text-white self-end ml-auto'
-                                        : 'bg-white border text-gray-800'
+                                    className={`relative max-w-[70%] p-3 rounded-lg
+            ${msg.sender && msg.sender._id === currentUserId
+                                            ? 'bg-blue-600 text-white self-end ml-auto'
+                                            : 'bg-white border text-gray-800'
                                         }`}
                                 >
+                                    {/* 3-dots Button (always visible) */}
+                                    {msg.sender?._id !== currentUserId && (
+                                        <div className="absolute top-1 right-1 z-10 rounded">
+                                            <button
+                                                className="text-gray-400 hover:text-red-500 px-2"
+                                                onClick={() => setFlagModal({ open: true, messageId: msg._id })}
+                                            >
+                                                ⋮
+                                            </button>
+                                        </div>
+                                    )}
+
                                     <div className="font-semibold">{msg.sender?.name || 'Unknown'}</div>
                                     <div>{msg.text}</div>
                                 </div>
-                            ))}
+                            </div>
+                        ))
+                    )}
+                    <div ref={messagesEndRef} />
+
+                    {/* Flag Modal */}
+                    {flagModal.open && (
+                        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+                            <div className="bg-white p-6 rounded shadow-lg w-full max-w-md">
+                                <h2 className="text-lg font-semibold mb-2">🚩 Report Message</h2>
+                                <textarea
+                                    className="w-full border p-2 rounded mb-3"
+                                    placeholder="Reason for flagging..."
+                                    value={flagReason}
+                                    onChange={(e) => setFlagReason(e.target.value)}
+                                />
+                                <div className="flex justify-end space-x-2">
+                                    <button
+                                        onClick={() => {
+                                            setFlagModal({ open: false, messageId: null });
+                                            setFlagReason('');
+                                        }}
+                                        className="px-4 py-1 bg-gray-300 rounded hover:bg-gray-400"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleFlagMessage}
+                                        className="px-4 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                                    >
+                                        Submit
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
+
+
                 {isTyping && (
                     <div className="flex gap-1 items-center p-2 bg-gray-200 rounded-full w-fit">
                         <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce [animation-delay:0s]" />
