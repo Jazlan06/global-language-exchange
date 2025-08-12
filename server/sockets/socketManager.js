@@ -7,6 +7,7 @@ const Group = require('../models/Group');
 const GroupMessage = require('../models/GroupMessage');
 const Subscription = require('../models/Subscription');
 const { sendPushNotification } = require('../controllers/pushController');
+const emitUpdatedDashboardStats = require('../utils/emitUpdatedDashboardStats');
 
 const onlineUsers = new Map();
 
@@ -95,6 +96,8 @@ module.exports = (io) => {
                 socket.emit('joined_success');
 
                 await notifyFriendsStatus(userId, 'online', io);
+                await emitUpdatedDashboardStats(io);
+
             } catch (error) {
                 console.error('❌ Error joining socket:', error.message);
                 socket.emit('error', { message: 'Authentication failed' });
@@ -125,6 +128,8 @@ module.exports = (io) => {
                 });
 
                 await message.populate('sender', 'name profilePic');
+                await emitUpdatedDashboardStats(io);
+
 
                 socket.emit('receive_message', {
                     chatId,
@@ -203,6 +208,7 @@ module.exports = (io) => {
                 });
                 console.log(`📞 Incoming call from ${fromUser._id} to ${to}`);
             }
+
         });
 
         socket.on('call_declined', ({ chatId }) => {
@@ -268,6 +274,7 @@ module.exports = (io) => {
                         chatId,
                         fromUser,
                     });
+                    await emitUpdatedDashboardStats(io);
 
                     console.log(`📞 Incoming call from ${fromUser.name} (${senderId}) ➡️ ${receiverId}`);
                 } else {

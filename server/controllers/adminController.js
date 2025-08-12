@@ -1,3 +1,4 @@
+//controllers/adminController.js
 const User = require('../models/User');
 const Message = require('../models/Message');
 const Chat = require('../models/Chat');

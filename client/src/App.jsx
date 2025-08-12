@@ -13,7 +13,8 @@ import GroupListPage from './pages/GroupListPage.jsx';
 import GroupDetailsPage from './pages/GroupDetailsPage.jsx';
 import IncomingCallHandler from './pages/IncomingCallHandler.jsx';
 import CallPage from './pages/CallPage.jsx';
-// import CallReceiverPage from './pages/CallReceiverPage.jsx';  
+import CallReceiverPage from './pages/CallReceiverPage.jsx';
+import AdminDashboard from './pages/AdminDashboard.jsx';
 import { useAuth } from './hooks/useAuth.jsx';
 
 export default function App() {
@@ -34,6 +35,7 @@ export default function App() {
                     path="/quizzes/progress"
                     element={token ? <QuizProgressPage /> : <Navigate to="/login" />}
                 />
+                <Route path="/admin/dashboard" element={token ? <AdminDashboard /> : <Navigate to="/login" />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/admin/quizzes" element={<AdminQuizPage />} />
                 <Route path="/friends" element={<FriendsPage />} />
@@ -41,8 +43,8 @@ export default function App() {
                 <Route path="/groups" element={token ? <GroupListPage /> : <Navigate to="/login" />} />
                 <Route path="/groups/:id" element={token ? <GroupDetailsPage /> : <Navigate to="/login" />} />
                 <Route path="/call/:chatId" element={token ? <CallPage /> : <Navigate to="/login" />} />
-                {/* <Route path="/call/:chatId" element={token ? <CallPage /> : <Navigate to="/login" />} />
-                <Route path="/call/:chatId/receive" element={token ? <CallReceiverPage /> : <Navigate to="/login" />} /> */}
+                <Route path="/call/:chatId" element={token ? <CallPage /> : <Navigate to="/login" />} />
+                <Route path="/call/:chatId/receive" element={token ? <CallReceiverPage /> : <Navigate to="/login" />} />
             </Routes>
             {token && user && <IncomingCallHandler currentUser={user} />}
         </>
