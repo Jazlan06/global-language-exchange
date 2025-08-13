@@ -28,24 +28,29 @@ export default function DashboardPage() {
                 {/* Lessons Section */}
                 <section>
                     <h2 className="text-2xl font-semibold mb-4">Your Lesson Progress</h2>
-                    {lessons.map((lp) => (
-                        <li key={lp.lesson._id} className="p-4 bg-white rounded shadow flex justify-between items-center">
-                            <div>
-                                <h3 className="font-medium text-lg">{lp.lesson.title}</h3>
-                                <p className="text-sm text-gray-600">Type: {lp.lesson.type}</p>
-                                <p className="text-sm text-gray-500">Status: {lp.status}</p>
-                            </div>
-                            {lp.status === 'unlocked' && (
-                                <a href={`/lessons/${lp.lesson._id}`} className="text-blue-600 underline">Start</a>
-                            )}
-                            {lp.status === 'completed' && (
-                                <span className="text-green-600 font-semibold">Completed</span>
-                            )}
-                            {lp.status === 'locked' && (
-                                <span className="text-gray-400">Locked</span>
-                            )}
-                        </li>
-                    ))}
+                    {lessons.map((lp) => {
+                        if (!lp.lesson) return null; // Skip null lessons
+
+                        return (
+                            <li key={lp.lesson._id} className="p-4 bg-white rounded shadow flex justify-between items-center">
+                                <div>
+                                    <h3 className="font-medium text-lg">{lp.lesson.title}</h3>
+                                    <p className="text-sm text-gray-600">Type: {lp.lesson.type}</p>
+                                    <p className="text-sm text-gray-500">Status: {lp.status}</p>
+                                </div>
+                                {lp.status === 'unlocked' && (
+                                    <a href={`/lessons/${lp.lesson._id}`} className="text-blue-600 underline">Start</a>
+                                )}
+                                {lp.status === 'completed' && (
+                                    <span className="text-green-600 font-semibold">Completed</span>
+                                )}
+                                {lp.status === 'locked' && (
+                                    <span className="text-gray-400">Locked</span>
+                                )}
+                            </li>
+                        );
+                    })}
+
                 </section>
             </div>
         </div>

@@ -13,9 +13,13 @@ exports.getUserProgress = async (req, res) => {
 };
 exports.createQuiz = async (req, res) => {
     try {
-        const { questions } = req.body;
+        const { title, questions } = req.body; 
 
-        const quiz = new Quiz({ questions });
+        if (!title || !questions || !Array.isArray(questions)) {
+            return res.status(400).json({ message: 'Title and questions are required' });
+        }
+
+        const quiz = new Quiz({ title, questions });
         await quiz.save();
 
         res.status(201).json({ message: 'Quiz created', quizId: quiz._id });
