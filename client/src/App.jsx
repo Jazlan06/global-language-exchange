@@ -17,6 +17,7 @@ import CallReceiverPage from './pages/CallReceiverPage.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
 import FlaggedMessagesPage from './pages/FlaggedMessagesPage.jsx';
 import FullChatPage from './pages/FullChatPage.jsx';
+import XPPage from './pages/XPPage.jsx';
 import { useAuth } from './hooks/useAuth.jsx';
 
 export default function App() {
@@ -31,6 +32,7 @@ export default function App() {
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/dashboard"
                     element={token ? <DashboardPage /> : <Navigate to="/login" />} />
+                <Route path="/xp" element={token ? <XPPage /> : <Navigate to="/login" />} />
                 <Route path="/lessons" element={token ? <LessonsListPage /> : <Navigate to="/login" />} />
                 <Route path="/lessons/:id" element={token ? <LessonPage /> : <Navigate to="/login" />} />
                 <Route
