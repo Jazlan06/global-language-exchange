@@ -4,7 +4,7 @@ const UserLessonProgress = require('../models/UserLessonProgress');
 
 exports.getUserProgress = async (req, res) => {
     try {
-        const progress = await UserLessonProgress.find({ user: req.user.id });
+        const progress = await UserLessonProgress.find({ user: req.user.id }).populate('lesson');
         res.json(progress);
     } catch (err) {
         console.error('❌ Error getting lesson progress:', err);

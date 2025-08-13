@@ -16,7 +16,7 @@ export default function LessonsListPage() {
                     axios.get("http://localhost:5000/api/lessons", {
                         headers: { Authorization: `Bearer ${token}` },
                     }),
-                    axios.get("http://localhost:5000/api/lesson-progress/completed", {
+                    axios.get("http://localhost:5000/api/lesson/progress/completed", {
                         headers: { Authorization: `Bearer ${token}` },
                     }),
                 ]);
@@ -33,7 +33,9 @@ export default function LessonsListPage() {
 
     const statusByLesson = {};
     progress.forEach((p) => {
-        statusByLesson[p.lesson._id] = p.status;
+        if (p.lesson && p.lesson._id) {
+            statusByLesson[p.lesson._id] = p.status;
+        }
     });
 
     return (
