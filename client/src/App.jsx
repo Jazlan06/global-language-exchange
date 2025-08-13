@@ -17,6 +17,7 @@ import CallReceiverPage from './pages/CallReceiverPage.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
 import FlaggedMessagesPage from './pages/FlaggedMessagesPage.jsx';
 import FullChatPage from './pages/FullChatPage.jsx';
+import AdminLessonPage from './pages/AdminLessonPage.jsx';
 import XPPage from './pages/XPPage.jsx';
 import { useAuth } from './hooks/useAuth.jsx';
 
@@ -41,6 +42,7 @@ export default function App() {
                 />
                 <Route path="/admin/dashboard" element={token ? <AdminDashboard /> : <Navigate to="/login" />} />
                 <Route path="/admin/flags" element={token ? <FlaggedMessagesPage /> : <Navigate to="/login" />} />
+<Route path="/admin/lessons" element={token ? <AdminLessonPage /> : <Navigate to="/login" />} />
                 <Route path="/chat/:chatId" element={token ? <FullChatPage /> : <Navigate to="/login" />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/admin/quizzes" element={<AdminQuizPage />} />
