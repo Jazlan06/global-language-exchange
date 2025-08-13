@@ -45,9 +45,18 @@ exports.markLessonComplete = async (req, res) => {
         })
 
         const currentLesson = await Lesson.findById(lessonId);
+
         if (currentLesson) {
-            await unlockNextLesson(userId, currentLesson.order);
+            const order = currentLesson.order;
+
+            if (typeof order !== 'number' || isNaN(order)) {
+                console.error(`Invalid or missing lesson order for lesson ${lessonId}:`, order);
+                return res.status(500).json({ message: 'Lesson order is invalid or missing' });
+            }
+
+            await unlockNextLesson(userId, order);
         }
+
 
         res.status(200).json({ message: 'Lesson marked complete and XP awarded' });
 

@@ -5,7 +5,7 @@ const User = require('../models/User');
 exports.getUserProgress = async (req, res) => {
     try {
         const progress = await UserQuizProgress.find({ user: req.user.id });
-        res.json(progress); 
+        res.json(progress);
     } catch (err) {
         console.error('❌ Error getting quiz progress:', err);
         res.status(500).json({ message: 'Failed to get quiz progress' });
@@ -90,7 +90,15 @@ exports.submitQuiz = async (req, res) => {
 
                 // Unlock next lesson
                 const { unlockNextLesson } = require('./lessonController');
-                await unlockNextLesson(req.user.id, lesson.order);
+                const order = lesson.order;
+
+                if (typeof order !== 'number' || isNaN(order)) {
+                    console.error(`Invalid or missing lesson order for lesson ${lesson._id}:`, order);
+                    // You can choose to skip unlocking next lesson or return error.
+                } else {
+                    await unlockNextLesson(req.user.id, order);
+                }
+
             }
         }
 
@@ -107,7 +115,6 @@ exports.submitQuiz = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
-
 
 exports.getUserQuizProgress = async (req, res) => {
     try {

@@ -62,7 +62,7 @@ export default function LessonPage() {
             if (res.data.passed) {
                 toast.success("You passed the quiz! 🎉 Lesson completed and XP awarded.");
 
-                await axios.post('http://localhost:5000/api/lesson-progress/complete', {
+                await axios.post('http://localhost:5000/api/lesson/progress/complete', {
                     lessonId: lesson._id
                 }, {
                     headers: {
@@ -98,7 +98,7 @@ export default function LessonPage() {
             )}
 
             {lesson.type === 'quiz' && (
-                lesson.quiz ? (
+                Array.isArray(lesson.quiz?.questions) ? (
                     <div className="space-y-6">
                         {lesson.quiz.questions.map((q, index) => (
                             <div key={index} className="bg-white p-4 rounded shadow">
@@ -129,9 +129,10 @@ export default function LessonPage() {
                         </button>
                     </div>
                 ) : (
-                    <p className="text-yellow-600">Quiz not yet available.</p>
+                    <p className="text-yellow-600">Quiz not yet available or malformed.</p>
                 )
             )}
+
 
             {lesson.type === 'audio' && (
                 <div>

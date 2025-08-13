@@ -5,7 +5,7 @@ const UserLessonProgress = require('../models/UserLessonProgress');
 exports.getUserProgress = async (req, res) => {
     try {
         const progress = await UserLessonProgress.find({ user: req.user.id });
-        res.json(progress); 
+        res.json(progress);
     } catch (err) {
         console.error('❌ Error getting lesson progress:', err);
         res.status(500).json({ message: 'Failed to get lesson progress' });
@@ -92,7 +92,7 @@ async function arePrerequisitesCompleted(userId, lesson) {
         return true;
     }
 
-    const completedCount = await UserLessonProgress.countDocument({
+    const completedCount = await UserLessonProgress.countDocuments({
         user: userId,
         lesson: { $in: lesson.prerequisites },
         status: 'completed'
@@ -101,6 +101,11 @@ async function arePrerequisitesCompleted(userId, lesson) {
 }
 
 async function unlockNextLesson(userId, currentLessonOrder) {
+    // Validate currentLessonOrder is a number
+    if (typeof currentLessonOrder !== 'number' || isNaN(currentLessonOrder)) {
+        console.error('unlockNextLesson: invalid currentLessonOrder:', currentLessonOrder);
+        return null;  // safely bail out here
+    }
 
     const nextLesson = await Lesson.findOne({
         order: currentLessonOrder + 1
@@ -127,6 +132,7 @@ async function unlockNextLesson(userId, currentLessonOrder) {
     await newProgress.save();
     return newProgress;
 }
+
 
 
 exports.unlockNextLesson = unlockNextLesson;
