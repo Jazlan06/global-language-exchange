@@ -84,7 +84,9 @@ const SendFriendRequest = () => {
                             <li key={user._id} className="flex justify-between items-center border-b pb-2">
                                 <div>
                                     <p className="font-medium">{user.name}</p>
-                                    <p className="text-sm text-gray-500">{user.email}</p>
+                                    {user.email && (
+                                        <p className="text-sm text-gray-500">{user.email}</p>
+                                    )}
                                 </div>
                                 <button
                                     onClick={() => handleSendRequest(user._id)}

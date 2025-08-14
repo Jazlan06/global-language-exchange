@@ -15,7 +15,8 @@ exports.getFriendSuggestions = async (req, res) => {
             ]
         });
 
-        const blockedUserIds = blockedDocs.flatMap(doc => [doc.blocker.toString(), doc.blocked.toString()])
+        const blockedUserIds = blockedDocs
+            .flatMap(doc => [doc.blocker.toString(), doc.blocked.toString()])
             .filter(id => id !== userId);
 
         const accepted = await FriendRequest.find({
@@ -26,7 +27,8 @@ exports.getFriendSuggestions = async (req, res) => {
             status: 'accepted'
         });
 
-        const friendIds = accepted.flatMap(req => [req.sender.toString(), req.receiver.toString()])
+        const friendIds = accepted
+            .flatMap(req => [req.sender.toString(), req.receiver.toString()])
             .filter(id => id !== userId);
 
         const pending = await FriendRequest.find({
@@ -36,7 +38,8 @@ exports.getFriendSuggestions = async (req, res) => {
             ]
         });
 
-        const pendingIds = pending.flatMap(req => [req.sender.toString(), req.receiver.toString()])
+        const pendingIds = pending
+            .flatMap(req => [req.sender.toString(), req.receiver.toString()])
             .filter(id => id !== userId);
 
         const excludeIds = [...new Set([
@@ -47,15 +50,23 @@ exports.getFriendSuggestions = async (req, res) => {
         ])];
 
         const suggestions = await User.find({
-            _id: { $nin: excludeIds }
-        }).select('name email');
+            _id: { $nin: excludeIds },
+            'privacy.profileVisibleTo': { $ne: 'only_me' } 
+        }).select('name email privacy');
 
-        res.json(suggestions)
+        const filteredSuggestions = suggestions.map(user => ({
+            _id: user._id,
+            name: user.name,
+            email: user.privacy?.showEmail ? user.email : undefined
+        }));
+
+        res.json(filteredSuggestions);
     } catch (error) {
         console.error('❌ Error in getFriendSuggestions:', error);
         res.status(500).json({ message: 'Server error while fetching friend suggestions' });
     }
-}
+};
+
 
 exports.sendRequest = async (req, res) => {
     const senderId = req.user.id;

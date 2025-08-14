@@ -4,13 +4,15 @@ import axios from 'axios';
 const PrivacySettingsForm = ({ current }) => {
     const [privacy, setPrivacy] = useState(current);
     const [status, setStatus] = useState('');
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         if (status) {
-            const timer = setTimeout(() => setStatus(''), 1000)
-            return () => clearTimeout(timer)
+            const timer = setTimeout(() => setStatus(''), 1000);
+            return () => clearTimeout(timer);
         }
-    })
+    }, [status]);
+
 
     const handleChange = (e) => {
         const { name, type, checked, value } = e.target;
@@ -22,6 +24,7 @@ const PrivacySettingsForm = ({ current }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setLoading(true);
         try {
             const token = localStorage.getItem('token');
             if (!token) {
@@ -39,9 +42,10 @@ const PrivacySettingsForm = ({ current }) => {
         } catch (err) {
             console.error('❌ Privacy update failed:', err);
             setStatus('❌ Update failed');
+        } finally {
+            setLoading(false);
         }
     };
-
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4 bg-white p-4 rounded-lg shadow-md">
@@ -83,10 +87,12 @@ const PrivacySettingsForm = ({ current }) => {
 
             <button
                 type="submit"
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+                disabled={loading}
+                className={`bg-blue-600 text-white px-4 py-2 rounded transition ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
             >
-                Save
+                {loading ? 'Saving...' : 'Save'}
             </button>
+
 
             {status && <p className="text-sm text-green-600 mt-2">{status}</p>}
         </form>
