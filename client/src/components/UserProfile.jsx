@@ -62,20 +62,28 @@ const UserProfile = () => {
         });
     };
 
-    // New handler for file input upload with base64 encoding
-    const handleImageUpload = (e) => {
+    const handleImageUpload = async (e) => {
         const file = e.target.files[0];
-        if (file) {
-            if (file.size > 300 * 1024) {
-                alert('Image too large. Max 300KB allowed.');
-                return;
-            }
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setFormData(prev => ({ ...prev, profilePic: reader.result }));
-                setImagePreview(reader.result);
-            };
-            reader.readAsDataURL(file);
+        console.log("📸 Selected file:", file);
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const res = await axios.post('http://localhost:5000/api/upload', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    Authorization: `Bearer ${token}`,
+                }
+            });
+
+            const imageUrl = res.data.url;
+            setFormData(prev => ({ ...prev, profilePic: imageUrl }));
+            setImagePreview(imageUrl);
+        } catch (err) {
+            console.error("❌ Upload failed:", err);
+            alert("Upload failed");
         }
     };
 
@@ -116,14 +124,7 @@ const UserProfile = () => {
         <div className="bg-white p-6 rounded-lg shadow-lg relative">
             <div className="flex items-center gap-4">
                 <img
-                    key={user.profilePic}
-                    src={
-                        imagePreview?.startsWith('data:image')
-                            ? imagePreview
-                            : user.profilePic?.startsWith('data:image')
-                                ? user.profilePic
-                                : '/default-avatar.png'
-                    }
+                    src={user.profilePic || '/default-avatar.png'}
                     alt="Profile"
                     className="w-16 h-16 rounded-full object-cover"
                 />

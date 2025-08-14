@@ -9,7 +9,7 @@ const http = require('http');
 const socketManager = require('./sockets/socketManager');
 const cleanupOnlineUsers = require('./utils/cleanupOnlineUsers');
 const scheduleDailyChallenge = require('./cron/dailyChallengeCron');
-
+const uploadRoute = require('./routes/upload');
 const app = express();
 const server = http.createServer(app);
 const io = require('socket.io')(server, {
@@ -28,8 +28,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(helmet());
 app.use(cors(corsOptions));
-app.use(sanitizer.clean({ xss: true, noSql: true, sql: true }));
-app.use(globalLimiter);
+// app.use(sanitizer.clean({ xss: true, noSql: true, sql: true }));
+// app.use(globalLimiter);
 app.set('io', io);
 
 app.use('/api/auth', require('./routes/authRoutes'));
@@ -51,6 +51,7 @@ app.use('/api/lessons', require('./routes/lessonRoutes'));
 app.use('/api/quizzes', require('./routes/quizRoutes'));
 app.use('/api/lesson/progress', require('./routes/lessonProgressRoutes'));
 app.use('/api/push', require('./routes/pushRoutes'));
+app.use('/api/upload', uploadRoute);
 
 socketManager(io);
 
