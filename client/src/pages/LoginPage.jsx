@@ -25,7 +25,7 @@ export default function LoginPage() {
             await subscribeUserToPush();
 
             console.log('✅ Finished subscribing to push. Redirecting in 3s...');
-            window.location.href = '/dashboard';
+            window.location.href = '/lessons';
         } catch (err) {
             setError(err?.response?.data?.message || 'Login failed');
         } finally {

@@ -12,8 +12,13 @@ router.put('/me', auth, (req, res, next) => {
 }, userController.updateProfile);
 router.put('/me/preferences', auth, userController.updatePreferences);
 router.get('/all', auth, async (req, res) => {
-    const users = await User.find({}, '_id name email');
-    res.json(users);
+    try {
+        const users = await User.find({}, '_id name email');
+        res.json(users);
+    } catch (err) {
+        console.error('❌ Error fetching all users:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
 });
 router.get('/friends/online', auth, userController.getOnlineFriends);
 router.get('/online', auth, userController.getAllOnlineUsers);

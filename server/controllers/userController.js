@@ -40,30 +40,45 @@ exports.updateProfile = async (req, res) => {
         notificationPreferences
     } = req.body;
 
+    const normalizeLanguageArray = (arr) => {
+        if (!Array.isArray(arr)) return [];
+        return arr
+            .map(item => typeof item === 'string' ? { language: item.trim() } : item)
+            .filter(item => item && item.language);
+    };
+
     try {
+        console.log("🧾 Update user profile request body:", req.body);
+
         const user = await User.findByIdAndUpdate(
             req.user.id,
             {
                 name,
-                languagesKnown,
-                languagesLearning,
+                languagesKnown: normalizeLanguageArray(languagesKnown),
+                languagesLearning: normalizeLanguageArray(languagesLearning),
                 timeZone,
                 interests,
                 profilePic,
                 theme,
                 notificationPreferences
             },
-            { new: true }
+            {
+                new: true,
+                runValidators: true
+            }
         ).select('-passwordHash');
+
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
+
         res.json(user);
     } catch (err) {
         console.error('❌ Error in updateProfile:', err);
         res.status(500).json({ message: 'Server error' });
     }
-}
+};
+
 
 exports.updatePreferences = async (req, res) => {
     const { theme, notificationPreferences } = req.body;
@@ -161,17 +176,17 @@ exports.getUserList = async (req, res) => {
 };
 
 exports.getFriends = async (req, res) => {
-  try {
-    const userId = req.params.userId;
-    const user = await User.findById(userId).populate('friends', 'name email');
+    try {
+        const userId = req.params.userId;
+        const user = await User.findById(userId).populate('friends', 'name email');
 
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.json({ friends: user.friends || [] });
+    } catch (err) {
+        console.error('Error fetching friends:', err);
+        res.status(500).json({ message: 'Server error' });
     }
-
-    res.json({ friends: user.friends || [] });
-  } catch (err) {
-    console.error('Error fetching friends:', err);
-    res.status(500).json({ message: 'Server error' });
-  }
 };
