@@ -9,6 +9,14 @@ exports.createGroup = async (req, res) => {
 
         const { name, description, topic, languageLevel, participants = [] } = req.body;
 
+        const isAllowedLanguage = (req.user.languagesLearning || []).some(
+            lang => lang.language === languageLevel
+        );
+
+        if (!isAllowedLanguage) {
+            return res.status(400).json({ message: 'You can only create groups in languages you are learning.' });
+        }
+
         const uniqueMembers = [...new Set([req.user.id, ...participants])];
 
         const group = new Group({
@@ -31,13 +39,28 @@ exports.createGroup = async (req, res) => {
 
 exports.listGroups = async (req, res) => {
     try {
-        const groups = await Group.find().select('name description topic languageLevel members admins');
+        const user = req.user;
+
+        const learningLanguages = (user.languagesLearning || []).map(l => l.language);
+        const knownLanguages = (user.languagesKnown || []).map(l => l.language);
+
+        const relevantLanguages = Array.from(new Set([...learningLanguages, ...knownLanguages]));
+
+        if (relevantLanguages.length === 0) {
+            return res.status(400).json({ message: 'No relevant languages found for filtering groups.' });
+        }
+
+        const groups = await Group.find({
+            languageLevel: { $in: relevantLanguages }
+        }).select('name description topic languageLevel members admins');
+
         res.json({ groups });
     } catch (err) {
-        console.error('Error fetching group:', err);
+        console.error('Error fetching groups:', err);
         res.status(500).json({ message: 'Server error' });
     }
-}
+};
+
 
 exports.getGroup = async (req, res) => {
     try {

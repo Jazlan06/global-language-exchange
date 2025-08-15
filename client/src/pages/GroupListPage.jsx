@@ -124,7 +124,8 @@ const GroupListPage = () => {
                                 <p className="text-sm text-gray-600">
                                     {(group.members?.length ?? 0)} member{(group.members?.length ?? 0) !== 1 && 's'}
                                 </p>
-
+                                <p className="text-xs text-gray-500 mt-1">Language: {group.languageLevel}</p>
+                                
                                 {unreadCount > 0 && (
                                     <span
                                         className="absolute top-3 right-3 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full"
