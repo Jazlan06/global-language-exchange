@@ -8,22 +8,23 @@ exports.getFriendSuggestions = async (req, res) => {
     const userId = req.user.id;
 
     try {
+        const currentUser = await User.findById(userId).select('languagesKnown languagesLearning');
+        if (!currentUser) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // 1. Get blocked user IDs
         const blockedDocs = await BlockedUser.find({
-            $or: [
-                { blocker: userId },
-                { blocked: userId }
-            ]
+            $or: [{ blocker: userId }, { blocked: userId }]
         });
 
         const blockedUserIds = blockedDocs
             .flatMap(doc => [doc.blocker.toString(), doc.blocked.toString()])
             .filter(id => id !== userId);
 
+        // 2. Get friend IDs
         const accepted = await FriendRequest.find({
-            $or: [
-                { sender: userId },
-                { receiver: userId }
-            ],
+            $or: [{ sender: userId }, { receiver: userId }],
             status: 'accepted'
         });
 
@@ -31,6 +32,7 @@ exports.getFriendSuggestions = async (req, res) => {
             .flatMap(req => [req.sender.toString(), req.receiver.toString()])
             .filter(id => id !== userId);
 
+        // 3. Get pending request IDs
         const pending = await FriendRequest.find({
             $or: [
                 { sender: userId, status: 'pending' },
@@ -42,6 +44,7 @@ exports.getFriendSuggestions = async (req, res) => {
             .flatMap(req => [req.sender.toString(), req.receiver.toString()])
             .filter(id => id !== userId);
 
+        // 4. Combine all excluded users
         const excludeIds = [...new Set([
             userId,
             ...blockedUserIds,
@@ -49,11 +52,53 @@ exports.getFriendSuggestions = async (req, res) => {
             ...pendingIds
         ])];
 
-        const suggestions = await User.find({
-            _id: { $nin: excludeIds },
-            'privacy.profileVisibleTo': { $ne: 'only_me' } 
-        }).select('name email privacy');
+        // 5. Normalize current user's languages
+        const currentKnown = currentUser.languagesKnown.map(l => l.language.toLowerCase());
+        const currentLearning = currentUser.languagesLearning.map(l => l.language.toLowerCase());
 
+        // 6. Query potential matches
+        const suggestions = await User.aggregate([
+            {
+                $match: {
+                    _id: { $nin: excludeIds.map(id => new mongoose.Types.ObjectId(id)) },
+                    'privacy.profileVisibleTo': { $ne: 'only_me' }
+                }
+            },
+            {
+                $addFields: {
+                    knownLanguages: {
+                        $map: {
+                            input: '$languagesKnown',
+                            as: 'lang',
+                            in: { $toLower: '$$lang.language' }
+                        }
+                    },
+                    learningLanguages: {
+                        $map: {
+                            input: '$languagesLearning',
+                            as: 'lang',
+                            in: { $toLower: '$$lang.language' }
+                        }
+                    }
+                }
+            },
+            {
+                $match: {
+                    knownLanguages: { $in: currentLearning.map(l => l.toLowerCase()) },
+                    learningLanguages: { $in: currentKnown.map(l => l.toLowerCase()) }
+                }
+            },
+            {
+                $project: {
+                    name: 1,
+                    email: 1,
+                    privacy: 1
+                }
+            }
+        ]);
+
+
+        // 7. Filter email based on privacy
         const filteredSuggestions = suggestions.map(user => ({
             _id: user._id,
             name: user.name,
@@ -66,7 +111,6 @@ exports.getFriendSuggestions = async (req, res) => {
         res.status(500).json({ message: 'Server error while fetching friend suggestions' });
     }
 };
-
 
 exports.sendRequest = async (req, res) => {
     const senderId = req.user.id;

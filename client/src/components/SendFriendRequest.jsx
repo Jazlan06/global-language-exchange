@@ -14,6 +14,7 @@ const SendFriendRequest = () => {
             const { data } = await axios.get('/api/friends/suggestions', {
                 headers: { Authorization: `Bearer ${token}` }
             });
+            console.log('👀 Suggestions:', data);
             setSuggestions(data);
         } catch (error) {
             console.error('❌ Error fetching suggestions:', error);

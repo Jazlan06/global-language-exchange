@@ -2,8 +2,23 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const PreferencesForm = ({ current }) => {
-    const [preferences, setPreferences] = useState(current);
+    const getDefaultPreferences = (data) => ({
+        theme: data?.theme || 'light',
+        notificationPreferences: {
+            email: data?.notificationPreferences?.email ?? false,
+            push: data?.notificationPreferences?.push ?? false,
+        },
+    });
+
+    const [preferences, setPreferences] = useState(getDefaultPreferences(current));
     const [status, setStatus] = useState('');
+
+    // Sync state when `current` changes
+    useEffect(() => {
+        if (current) {
+            setPreferences(getDefaultPreferences(current));
+        }
+    }, [current]);
 
     useEffect(() => {
         if (status) {
@@ -56,7 +71,10 @@ const PreferencesForm = ({ current }) => {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4 bg-white p-4 rounded-lg shadow-md">
+        <form
+            onSubmit={handleSubmit}
+            className="space-y-4 bg-white p-4 rounded-lg shadow-md"
+        >
             <label className="block">
                 <span>Theme:</span>
                 <select
@@ -78,7 +96,7 @@ const PreferencesForm = ({ current }) => {
                         <input
                             type="checkbox"
                             name={`notificationPreferences.${key}`}
-                            checked={preferences.notificationPreferences[key]}
+                            checked={preferences.notificationPreferences[key] ?? false}
                             onChange={handleChange}
                             className="form-checkbox"
                         />
@@ -96,8 +114,9 @@ const PreferencesForm = ({ current }) => {
 
             {status && (
                 <div
-                    className={`text-sm mt-2 ${status.startsWith('✅') ? 'text-green-600' : 'text-red-600'
-                        }`}
+                    className={`text-sm mt-2 ${
+                        status.startsWith('✅') ? 'text-green-600' : 'text-red-600'
+                    }`}
                 >
                     {status}
                 </div>
