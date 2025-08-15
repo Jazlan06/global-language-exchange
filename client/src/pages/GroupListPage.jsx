@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CreateGroupForm from '../components/CreateGroupForm';
+import GroupCard from '../components/GroupCard';
 import { useGroupUnread } from '../context/GroupUnreadContext';
 
 function parseJwt(token) {
@@ -17,25 +18,18 @@ const GroupListPage = () => {
     const isTokenExpired = decodedToken?.exp * 1000 < Date.now();
     const currentUserId = decodedToken?.id || null;
 
-    const { unreadCounts } = useGroupUnread();
+    const userLearningLangs = decodedToken?.languagesLearning?.map(l => l.language) || [];
+    const userKnownLangs = decodedToken?.languagesKnown?.map(l => l.language) || [];
 
-    if (!rawToken || isTokenExpired || !currentUserId) {
-        return (
-            <div className="p-6 text-red-600 text-center">
-                <p>You must be logged in to view groups.</p>
-            </div>
-        );
-    }
+    const { unreadCounts } = useGroupUnread();
 
     const [groups, setGroups] = useState([]);
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [filterType, setFilterType] = useState('all');
     const navigate = useNavigate();
 
     useEffect(() => {
-        if (!rawToken) {
-            console.warn('No auth token found. Redirecting or skipping fetch.');
-            return;
-        }
+        if (!rawToken) return;
 
         const fetchGroups = async () => {
             try {
@@ -56,22 +50,35 @@ const GroupListPage = () => {
         fetchGroups();
     }, [rawToken]);
 
+    useEffect(() => {
+        console.log('Groups from backend:', groups);
+    }, [groups]);
+
     const handleGroupClick = (groupId) => {
         navigate(`/groups/${groupId}`);
     };
 
-    const handleCreateClick = () => {
-        setShowCreateModal(true);
-    };
-
-    const handleCreateCancel = () => {
-        setShowCreateModal(false);
-    };
-
+    const handleCreateClick = () => setShowCreateModal(true);
+    const handleCreateCancel = () => setShowCreateModal(false);
     const handleCreateSuccess = (result) => {
         setGroups((prevGroups) => [...prevGroups, result.group]);
         setShowCreateModal(false);
     };
+    //Stop Here , just filters not working
+
+    const filteredGroups = groups.filter(group => {
+        if (filterType === 'learning') return group.matchRole === 'learning';
+        if (filterType === 'can_help') return group.matchRole === 'can_help';
+        return true; // 'all'
+    });
+
+    if (!rawToken || isTokenExpired || !currentUserId) {
+        return (
+            <div className="p-6 text-red-600 text-center">
+                <p>You must be logged in to view groups.</p>
+            </div>
+        );
+    }
 
     return (
         <div
@@ -86,11 +93,40 @@ const GroupListPage = () => {
                 <button
                     onClick={handleCreateClick}
                     className="px-3 py-1.5 rounded-lg bg-green-600 text-white font-medium shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 transition-colors"
-                    aria-label="Create New Group"
                 >
                     + New Group
                 </button>
             </div>
+
+            <div className="mb-6 flex items-center gap-4">
+                <label className="text-gray-800 font-medium">Filter by:</label>
+                <select
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value)}
+                    className="border px-3 py-1 rounded-md shadow-sm focus:ring-2 focus:ring-blue-300"
+                >
+                    <option value="all">All</option>
+                    <option value="learning">You're Learning</option>
+                    <option value="can_help">You Can Help</option>
+                </select>
+            </div>
+
+            {filteredGroups.length === 0 ? (
+                <p className="text-gray-700 text-center mt-16">No matching groups found.</p>
+            ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                    {filteredGroups.map((group) => (
+                        <GroupCard
+                            key={group._id}
+                            group={group}
+                            unreadCount={unreadCounts[group._id] || 0}
+                            onClick={() => handleGroupClick(group._id)}
+                            userLearningLangs={userLearningLangs}
+                            userKnownLangs={userKnownLangs}
+                        />
+                    ))}
+                </div>
+            )}
 
             {showCreateModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -101,42 +137,6 @@ const GroupListPage = () => {
                             onCancel={handleCreateCancel}
                         />
                     </div>
-                </div>
-            )}
-
-            {groups.length === 0 ? (
-                <p className="text-gray-700 text-center mt-16">You’re not part of any groups yet.</p>
-            ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                    {groups.map((group) => {
-                        const unreadCount = unreadCounts[group._id] || 0;
-                        return (
-                            <div
-                                key={group._id}
-                                onClick={() => handleGroupClick(group._id)}
-                                className="cursor-pointer bg-white rounded-xl shadow-lg p-5 hover:shadow-2xl transform hover:-translate-y-1 transition duration-300 ease-in-out relative"
-                                title={`Members: ${group.members?.length ?? 0}`}
-                                role="button"
-                                tabIndex={0}
-                                onKeyDown={(e) => e.key === 'Enter' && handleGroupClick(group._id)}
-                            >
-                                <h2 className="text-lg font-semibold text-gray-900 mb-2 truncate">{group.name}</h2>
-                                <p className="text-sm text-gray-600">
-                                    {(group.members?.length ?? 0)} member{(group.members?.length ?? 0) !== 1 && 's'}
-                                </p>
-                                <p className="text-xs text-gray-500 mt-1">Language: {group.languageLevel}</p>
-                                
-                                {unreadCount > 0 && (
-                                    <span
-                                        className="absolute top-3 right-3 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full"
-                                        aria-label={`${unreadCount} unread messages`}
-                                    >
-                                        {unreadCount}
-                                    </span>
-                                )}
-                            </div>
-                        );
-                    })}
                 </div>
             )}
 

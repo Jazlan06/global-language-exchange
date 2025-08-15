@@ -1,5 +1,6 @@
 const Group = require('../models/Group');
 const GroupMessage = require('../models/GroupMessage');
+const User = require('../models/User');
 
 exports.createGroup = async (req, res) => {
     try {
@@ -39,28 +40,27 @@ exports.createGroup = async (req, res) => {
 
 exports.listGroups = async (req, res) => {
     try {
-        const user = req.user;
+        const user = await User.findById(req.user.id);
+        const learning = user.languagesLearning.map(l => l.language);
+        const known = user.languagesKnown.map(l => l.language);
 
-        const learningLanguages = (user.languagesLearning || []).map(l => l.language);
-        const knownLanguages = (user.languagesKnown || []).map(l => l.language);
+        const groups = await Group.find().select('name description topic languageLevel members admins');
 
-        const relevantLanguages = Array.from(new Set([...learningLanguages, ...knownLanguages]));
+        const enhancedGroups = groups.map(group => {
+            const canHelp = known.includes(group.languageLevel);
+            const isLearning = learning.includes(group.languageLevel);
+            return {
+                ...group.toObject(),
+                matchRole: isLearning ? 'learning' : canHelp ? 'can_help' : 'none',
+            };
+        });
 
-        if (relevantLanguages.length === 0) {
-            return res.status(400).json({ message: 'No relevant languages found for filtering groups.' });
-        }
-
-        const groups = await Group.find({
-            languageLevel: { $in: relevantLanguages }
-        }).select('name description topic languageLevel members admins');
-
-        res.json({ groups });
+        res.json({ groups: enhancedGroups });
     } catch (err) {
-        console.error('Error fetching groups:', err);
+        console.error('Error fetching group:', err);
         res.status(500).json({ message: 'Server error' });
     }
 };
-
 
 exports.getGroup = async (req, res) => {
     try {
