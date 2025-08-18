@@ -28,8 +28,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(helmet());
 app.use(cors(corsOptions));
-// app.use(sanitizer.clean({ xss: true, noSql: true, sql: true }));
-// app.use(globalLimiter);
+app.use(sanitizer.clean({ xss: true, noSql: true, sql: true }));
+app.use(globalLimiter);
 app.set('io', io);
 
 app.use('/api/auth', require('./routes/authRoutes'));

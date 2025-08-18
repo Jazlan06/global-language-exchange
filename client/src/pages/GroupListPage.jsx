@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CreateGroupForm from '../components/CreateGroupForm';
 import GroupCard from '../components/GroupCard';
 import { useGroupUnread } from '../context/GroupUnreadContext';
+import { FaUsers } from 'react-icons/fa';
 
 function parseJwt(token) {
     try {
@@ -17,13 +18,12 @@ const GroupListPage = () => {
     const decodedToken = rawToken ? parseJwt(rawToken) : null;
     const isTokenExpired = decodedToken?.exp * 1000 < Date.now();
     const currentUserId = decodedToken?.id || null;
-
     const userLearningLangs = decodedToken?.languagesLearning?.map(l => l.language) || [];
     const userKnownLangs = decodedToken?.languagesKnown?.map(l => l.language) || [];
-
-    const { unreadCounts } = useGroupUnread();
-
     const [groups, setGroups] = useState([]);
+    const joinedGroups = groups.filter(g => g.members.some(m => m._id === currentUserId));
+    const unjoinedGroups = groups.filter(g => !g.members.some(m => m._id === currentUserId));
+    const { unreadCounts } = useGroupUnread();
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [filterType, setFilterType] = useState('all');
     const navigate = useNavigate();
@@ -64,12 +64,34 @@ const GroupListPage = () => {
         setGroups((prevGroups) => [...prevGroups, result.group]);
         setShowCreateModal(false);
     };
-    //Stop Here , just filters not working
 
-    const filteredGroups = groups.filter(group => {
+    //Stop if not working
+
+    const handleJoinGroup = useCallback(async (groupId) => {
+        try {
+            const res = await fetch(`/api/groups/${groupId}/join`, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${rawToken}`,
+                },
+            });
+            if (!res.ok) throw new Error('Failed to join group');
+            const data = await res.json();
+
+            setGroups(prev => prev.map(g =>
+                g._id === groupId
+                    ? { ...g, members: [...g.members, { _id: currentUserId }] }
+                    : g
+            ));
+        } catch (err) {
+            console.error(err.message);
+        }
+    }, [rawToken, currentUserId]);
+
+    const filteredGroups = unjoinedGroups.filter(group => {
         if (filterType === 'learning') return group.matchRole === 'learning';
         if (filterType === 'can_help') return group.matchRole === 'can_help';
-        return true; // 'all'
+        return true;
     });
 
     if (!rawToken || isTokenExpired || !currentUserId) {
@@ -121,6 +143,8 @@ const GroupListPage = () => {
                             group={group}
                             unreadCount={unreadCounts[group._id] || 0}
                             onClick={() => handleGroupClick(group._id)}
+                            onJoin={handleJoinGroup}
+                            joined={false}
                             userLearningLangs={userLearningLangs}
                             userKnownLangs={userKnownLangs}
                         />
@@ -149,6 +173,15 @@ const GroupListPage = () => {
                     animation: fadeIn 0.3s ease forwards;
                 }
             `}</style>
+            <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2">
+                <button
+                    onClick={() => navigate('/my-groups')}
+                    className="flex items-center gap-2 bg-white bg-opacity-70 text-gray-800 px-5 py-2 rounded-full shadow-md hover:bg-opacity-90 transition"
+                >
+                    <FaUsers />
+                    My Groups
+                </button>
+            </div>
         </div>
     );
 };

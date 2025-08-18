@@ -4,6 +4,8 @@ const GroupCard = ({
     group,
     unreadCount,
     onClick,
+    onJoin,
+    joined = false,
     userLearningLangs = [],
     userKnownLangs = [],
 }) => {
@@ -50,6 +52,20 @@ const GroupCard = ({
                     {unreadCount}
                 </span>
             )}
+
+            {
+                !joined && (
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onJoin?.(group._id);
+                        }}
+                        className="mt-4 px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-sm"
+                    >
+                        Join
+                    </button>
+                )
+            }
         </div>
     );
 };

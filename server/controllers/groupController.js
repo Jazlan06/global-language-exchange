@@ -44,7 +44,9 @@ exports.listGroups = async (req, res) => {
         const learning = user.languagesLearning.map(l => l.language);
         const known = user.languagesKnown.map(l => l.language);
 
-        const groups = await Group.find().select('name description topic languageLevel members admins');
+        const groups = await Group.find()
+            .select('name description topic languageLevel members admins')
+            .populate('members', '_id');
 
         const enhancedGroups = groups.map(group => {
             const canHelp = known.includes(group.languageLevel);
@@ -89,7 +91,7 @@ exports.joinGroup = async (req, res) => {
         const group = await Group.findById(req.params.groupId);
         if (!group) return res.status(404).json({ message: 'Group not found' });
 
-        if (group.members.includes(req.user.id)) {
+        if (group.members.some(member => member.toString() === req.user.id.toString())) {
             return res.status(400).json({ message: 'Already a member' });
         }
 

@@ -8,6 +8,7 @@ import ProfilePage from './pages/ProfilePage.jsx';
 import FriendsPage from './pages/FriendsPage.jsx';
 import ChatPage from './pages/ChatPage.jsx';
 import GroupListPage from './pages/GroupListPage.jsx';
+import MyGroupsPage from './pages/MyGroupsPage';
 import GroupDetailsPage from './pages/GroupDetailsPage.jsx';
 import IncomingCallHandler from './pages/IncomingCallHandler.jsx';
 import CallPage from './pages/CallPage.jsx';
@@ -49,6 +50,7 @@ export default function App() {
                 <Route path="/friends" element={<FriendsPage />} />
                 <Route path="/chat" element={<ChatPage />} />
                 <Route path="/groups" element={token ? <GroupListPage /> : <Navigate to="/login" />} />
+                <Route path="/my-groups" element={token ? <MyGroupsPage /> : <Navigate to="/login" />} />
                 <Route path="/groups/:id" element={token ? <GroupDetailsPage /> : <Navigate to="/login" />} />
                 <Route path="/call/:chatId" element={token ? <CallPage /> : <Navigate to="/login" />} />
                 <Route path="/call/:chatId" element={token ? <CallPage /> : <Navigate to="/login" />} />
