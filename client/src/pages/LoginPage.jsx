@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { login } from '../services/authService';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { subscribeUserToPush } from '../utils/pushManager';
+import { useNavigate } from 'react-router-dom';
 
 export default function LoginPage() {
     const { login: contextLogin } = useAuth();
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -20,12 +22,14 @@ export default function LoginPage() {
 
         try {
             const data = await login(formData.email, formData.password);
-            console.log('Login success:', data);
+            console.log('User role:', data.user.role);
             contextLogin(data);
             await subscribeUserToPush();
-
-            console.log('✅ Finished subscribing to push. Redirecting in 3s...');
-            window.location.href = '/lessons';
+            if (data.user.role === 'admin') {
+                navigate('/admin/dashboard');
+            } else {
+                navigate('/lessons');
+            }
         } catch (err) {
             setError(err?.response?.data?.message || 'Login failed');
         } finally {

@@ -9,6 +9,25 @@ export default function Navbar() {
     const toggleMenu = () => setMenuOpen((prev) => !prev);
     const closeMenu = () => setMenuOpen(false);
 
+    // Define routes based on role
+    const adminRoutes = [
+        { path: '/admin/dashboard', label: 'Dashboard' },
+        { path: '/admin/quizzes', label: 'Quizzes' },
+        { path: '/admin/lessons', label: 'Lessons' },
+        { path: '/admin/flags', label: 'Flags' },
+    ];
+
+    const userRoutes = [
+        { path: '/dashboard', label: 'Dashboard' },
+        { path: '/profile', label: 'Profile' },
+        { path: '/quizzes/progress', label: 'Progress' },
+        { path: '/friends', label: 'Friends' },
+        { path: '/chat', label: 'Chat' },
+        { path: '/groups', label: 'Groups' },
+    ];
+
+    const routesToShow = user?.role === 'admin' ? adminRoutes : userRoutes;
+
     return (
         <nav className="bg-white shadow-md px-4 py-3 sticky top-0 z-50">
             <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -31,9 +50,19 @@ export default function Navbar() {
                         xmlns="http://www.w3.org/2000/svg"
                     >
                         {menuOpen ? (
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M6 18L18 6M6 6l12 12"
+                            />
                         ) : (
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M4 6h16M4 12h16M4 18h16"
+                            />
                         )}
                     </svg>
                 </button>
@@ -42,12 +71,15 @@ export default function Navbar() {
                 <div className="hidden sm:flex gap-6 items-center">
                     {user ? (
                         <>
-                            <Link to="/dashboard" className="text-gray-700 hover:text-blue-600 font-medium">Dashboard</Link>
-                            <Link to="/profile" className="text-gray-700 hover:text-blue-600 font-medium">Profile</Link>
-                            <Link to="/quizzes/progress" className="text-gray-700 hover:text-blue-600 font-medium">Progress</Link>
-                            <Link to="/friends" className="text-gray-700 hover:text-blue-600 font-medium">Friends</Link>
-                            <Link to="/chat" className="text-gray-700 hover:text-blue-600 font-medium">Chat</Link>
-                            <Link to="/groups" className="text-gray-700 hover:text-blue-600 font-medium">Groups</Link>
+                            {routesToShow.map(({ path, label }) => (
+                                <Link
+                                    key={path}
+                                    to={path}
+                                    className="text-gray-700 hover:text-blue-600 font-medium"
+                                >
+                                    {label}
+                                </Link>
+                            ))}
                             <button
                                 onClick={logout}
                                 className="bg-red-500 text-white px-4 py-1.5 rounded hover:bg-red-600"
@@ -57,8 +89,18 @@ export default function Navbar() {
                         </>
                     ) : (
                         <>
-                            <Link to="/login" className="text-gray-700 hover:text-blue-600 font-medium">Login</Link>
-                            <Link to="/register" className="text-gray-700 hover:text-blue-600 font-medium">Register</Link>
+                            <Link
+                                to="/login"
+                                className="text-gray-700 hover:text-blue-600 font-medium"
+                            >
+                                Login
+                            </Link>
+                            <Link
+                                to="/register"
+                                className="text-gray-700 hover:text-blue-600 font-medium"
+                            >
+                                Register
+                            </Link>
                         </>
                     )}
                 </div>
@@ -69,12 +111,16 @@ export default function Navbar() {
                 <div className="sm:hidden mt-3 space-y-2 px-2 pb-4">
                     {user ? (
                         <>
-                            <Link to="/dashboard" onClick={closeMenu} className="block text-gray-700 hover:text-blue-600">Dashboard</Link>
-                            <Link to="/profile" onClick={closeMenu} className="block text-gray-700 hover:text-blue-600">Profile</Link>
-                            <Link to="/quizzes/progress" onClick={closeMenu} className="block text-gray-700 hover:text-blue-600">Progress</Link>
-                            <Link to="/friends" onClick={closeMenu} className="block text-gray-700 hover:text-blue-600">Friends</Link>
-                            <Link to="/chat" onClick={closeMenu} className="block text-gray-700 hover:text-blue-600">Chat</Link>
-                            <Link to="/groups" onClick={closeMenu} className="block text-gray-700 hover:text-blue-600">Groups</Link>
+                            {routesToShow.map(({ path, label }) => (
+                                <Link
+                                    key={path}
+                                    to={path}
+                                    onClick={closeMenu}
+                                    className="block text-gray-700 hover:text-blue-600"
+                                >
+                                    {label}
+                                </Link>
+                            ))}
                             <button
                                 onClick={() => {
                                     closeMenu();
@@ -87,8 +133,20 @@ export default function Navbar() {
                         </>
                     ) : (
                         <>
-                            <Link to="/login" onClick={closeMenu} className="block text-gray-700 hover:text-blue-600">Login</Link>
-                            <Link to="/register" onClick={closeMenu} className="block text-gray-700 hover:text-blue-600">Register</Link>
+                            <Link
+                                to="/login"
+                                onClick={closeMenu}
+                                className="block text-gray-700 hover:text-blue-600"
+                            >
+                                Login
+                            </Link>
+                            <Link
+                                to="/register"
+                                onClick={closeMenu}
+                                className="block text-gray-700 hover:text-blue-600"
+                            >
+                                Register
+                            </Link>
                         </>
                     )}
                 </div>
