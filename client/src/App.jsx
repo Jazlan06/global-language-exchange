@@ -19,7 +19,6 @@ import FullChatPage from './pages/FullChatPage.jsx';
 import AdminLessonPage from './pages/AdminLessonPage.jsx';
 import LessonsPage from './pages/LessonsPage.jsx';
 import LessonDetailPage from './pages/LessonDetailPage.jsx';
-import XPPage from './pages/XPPage.jsx';
 import { useAuth } from './hooks/useAuth.jsx';
 
 export default function App() {
@@ -34,7 +33,6 @@ export default function App() {
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/dashboard"
                     element={token ? <DashboardPage /> : <Navigate to="/login" />} />
-                <Route path="/xp" element={token ? <XPPage /> : <Navigate to="/login" />} />
                 <Route
                     path="/quizzes/progress"
                     element={token ? <QuizProgressPage /> : <Navigate to="/login" />}
